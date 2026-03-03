@@ -15,16 +15,16 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            asset_name: my-app-x86_64-linux.tar.gz
+            target: x86_64-unknown-linux-gnu
+            asset_name: rv2b-x86_64-linux.tar.gz
             command: tar czvf
           - os: macos-latest
             target: x86_64-apple-darwin
-            asset_name: my-app-x86_64-macos.tar.gz
+            asset_name: rv2b-x86_64-macos.tar.gz
             command: tar czvf
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            asset_name: my-app-x86_64-windows.zip
+            asset_name: rv2b-x86_64-windows.zip
             command: zip -r
 
     runs-on: ${{ matrix.os }}
@@ -48,7 +48,7 @@ jobs:
         run: |
           BINARY_DIR="target/${{ matrix.target }}/release"
           mkdir -p staging
-          cp $BINARY_DIR/my-app staging/
+          cp $BINARY_DIR/rv2b staging/
           cd staging
           tar czvf ../${{ matrix.asset_name }} rv2b
           cd ..
