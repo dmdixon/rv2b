@@ -40,7 +40,7 @@ jobs:
           target: ${{ matrix.target }}
           
       - name: Build binary
-        run: cargo build --release --target ${{ matrix.target }}
+        run: RUSTFLAGS="-Ctarget-feature=+crt-static" cargo build --release --target ${{ matrix.target }}
 
       - name: Compress binary (Linux/macOS)
         if: matrix.os != 'windows-latest'
