@@ -1,0 +1,68 @@
+name: build_deploy
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            asset_name: my-app-x86_64-linux.tar.gz
+            command: tar czvf
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            asset_name: my-app-x86_64-macos.tar.gz
+            command: tar czvf
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset_name: my-app-x86_64-windows.zip
+            command: zip -r
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          
+      - name: Build binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Compress binary (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        shell: bash
+        run: |
+          BINARY_DIR="target/${{ matrix.target }}/release"
+          mkdir -p staging
+          cp $BINARY_DIR/my-app staging/
+          cd staging
+          tar czvf ../${{ matrix.asset_name }} rv2b
+          cd ..
+
+      - name: Compress binary (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        run: |
+          $BINARY_DIR = "target/${{ matrix.target }}/release"
+          mkdir staging
+          Copy-Item -Path "$BINARY_DIR/rv2b.exe" -Destination staging/
+          Compress-Archive -Path staging/* -DestinationPath ${{ matrix.asset_name }}
+          
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}
