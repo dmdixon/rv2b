@@ -38,6 +38,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y musl-tools
 
       - name: Create g++ symlink
+        if: runner.os == 'Linux'
         run: sudo ln -s /usr/bin/g++ /usr/bin/x86_64-linux-musl-g++
         
       - name: Install musl-cross (macOS)
