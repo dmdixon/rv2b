@@ -1,2 +1,2 @@
-[build]
-rustflags = ["-C", "link-arg=-static"]
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "target-feature=+crt-static"]
