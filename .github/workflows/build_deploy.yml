@@ -54,7 +54,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           command: "build"
-          args: "--release"
+          args: "--release --verbose"
 
       - name: Compress binary (Linux/macOS)
         if: matrix.os != 'windows-latest'
