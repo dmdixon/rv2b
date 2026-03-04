@@ -18,11 +18,11 @@ jobs:
             target: x86_64-unknown-linux-musl
             asset_name: rv2b-x86_64-linux.gz
             command: gzip
-          - os: macos-latest  
+          - os: macos-latest
             target: x86_64-apple-darwin
             asset_name: rv2b-x86_64-macos.gz
             command: gzip
-          - os: windows-latest 
+          - os: windows-latest
             target: x86_64-pc-windows-msvc
             asset_name: rv2b-x86_64-windows.zip
             command: zip
@@ -31,10 +31,10 @@ jobs:
 
     steps:
       - name: Checkout code
-      - uses: [actions/checkout](https://github.com)@v4
-    
+        uses: actions/checkout@v4
+      
       - name: Build static binary for ${{ matrix.target }}
-        uses: [houseabsolute/actions-rust-cross](https://github.com/houseabsolute/actions-rust-cross)@v1
+        uses: houseabsolute/actions-rust-cross@v1
         with:
           target: ${{ matrix.target }}
           command: "build"
@@ -49,20 +49,3 @@ jobs:
           cp $BINARY_DIR/rv2b staging/
           cd staging
           gzip rv2b
-          cd ..
-
-      - name: Compress binary (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: powershell
-        run: |
-          $BINARY_DIR = "target/${{ matrix.target }}/release"
-          mkdir staging
-          Copy-Item -Path "$BINARY_DIR/rv2b.exe" -Destination staging/
-          Compress-Archive -Path staging/* -DestinationPath ${{ matrix.asset_name }}
-
-
-    - name: Upload artifact
-      uses: [actions/upload-artifact](https://github.com)@v4
-      with:
-        name: rv2b-${{ matrix.target }}
-        path: target/${{ matrix.target }}/release/rv2b*
