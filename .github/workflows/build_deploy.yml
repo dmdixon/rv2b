@@ -15,32 +15,30 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            asset_name: rv2b-x86_64-linux.tar.gz
-            command: tar czvf
-          - os: macos-latest
+            target: x86_64-unknown-linux-musl
+            asset_name: rv2b-x86_64-linux.gz
+            command: gzip
+          - os: macos-latest  
             target: x86_64-apple-darwin
-            asset_name: rv2b-x86_64-macos.tar.gz
-            command: tar czvf
-          - os: windows-latest
+            asset_name: rv2b-x86_64-macos.gz
+            command: gzip
+          - os: windows-latest 
             target: x86_64-pc-windows-msvc
             asset_name: rv2b-x86_64-windows.zip
-            command: zip -r
+            command: zip
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: [actions/checkout](https://github.com)@v4
+    
+      - name: Build static binary for ${{ matrix.target }}
+        uses: [houseabsolute/actions-rust-cross](https://github.com/houseabsolute/actions-rust-cross)@v1
         with:
-          toolchain: stable
           target: ${{ matrix.target }}
-          
-      - name: Build binary
-        run: cargo build --release --target ${{ matrix.target }}
+          command: "build"
+          args: "--release"
 
       - name: Compress binary (Linux/macOS)
         if: matrix.os != 'windows-latest'
@@ -50,7 +48,7 @@ jobs:
           mkdir -p staging
           cp $BINARY_DIR/rv2b staging/
           cd staging
-          tar czvf ../${{ matrix.asset_name }} rv2b
+          gzip rv2b
           cd ..
 
       - name: Compress binary (Windows)
@@ -61,9 +59,10 @@ jobs:
           mkdir staging
           Copy-Item -Path "$BINARY_DIR/rv2b.exe" -Destination staging/
           Compress-Archive -Path staging/* -DestinationPath ${{ matrix.asset_name }}
-          
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.asset_name }}
-          path: ${{ matrix.asset_name }}
+
+
+    - name: Upload artifact
+      uses: [actions/upload-artifact](https://github.com)@v4
+      with:
+        name: rv2b-${{ matrix.target }}
+        path: target/${{ matrix.target }}/release/rv2b*
