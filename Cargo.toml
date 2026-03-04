@@ -18,7 +18,7 @@ indexmap = "2.12.1"
 normality = "3.0.0"
 plotters = { version = "0.3.7", features = ["ab_glyph", "fontconfig-dlopen"] }
 chrono = "0.4.44"
-mimalloc = { version = "0.1.48", features = ["v3"] }
+mimalloc = { version = "0.1.48", features = ["v3", "static"] }
 
 [profile.release]
 codegen-units = 1
