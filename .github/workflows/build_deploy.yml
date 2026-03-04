@@ -15,17 +15,14 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
+            target: x86_64-unknown-linux-gnu
             asset_name: rv2b-x86_64-linux.gz
-            command: gzip
           - os: macos-latest
             target: x86_64-apple-darwin
             asset_name: rv2b-x86_64-macos.gz
-            command: gzip
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             asset_name: rv2b-x86_64-windows.zip
-            command: zip
 
     runs-on: ${{ matrix.os }}
 
@@ -33,32 +30,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config libssl-dev
-
-      - name: Install musl-tools (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y musl-tools
-
-      - name: Create g++ symlink
-        if: runner.os == 'Linux'
-        run: sudo ln -s /usr/bin/g++ /usr/bin/x86_64-linux-musl-g++
-
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: brew install libpq && brew link --force libpq
-        
-      - name: Install musl-cross (macOS)
-        if: runner.os == 'macOS'
-        run: brew install filosottile/musl-cross/musl-cross
-      
-      - name: Build static binary for ${{ matrix.target }}
-        uses: houseabsolute/actions-rust-cross@v1
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
+          toolchain: stable
           target: ${{ matrix.target }}
-          command: "build"
-          args: "--release --verbose"
+          
+      - name: Build binary
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Compress binary (Linux/macOS)
         if: matrix.os != 'windows-latest'
@@ -68,4 +47,19 @@ jobs:
           mkdir -p staging
           cp $BINARY_DIR/rv2b staging/
           cd staging
-          gzip rv2b
+          gzip ../${{ matrix.asset_name }} rv2b
+          cd ..
+      - name: Compress binary (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        run: |
+          $BINARY_DIR = "target/${{ matrix.target }}/release"
+          mkdir staging
+          Copy-Item -Path "$BINARY_DIR/rv2b.exe" -Destination staging/
+          Compress-Archive -Path staging/* -DestinationPath ${{ matrix.asset_name }}
+          
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}
