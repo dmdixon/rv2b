@@ -17,8 +17,8 @@
 | niter_ga | Number of Genetic Algorithm generations processed before convergence. |
 | niter_lm | Number of Levenberg-Marquardt Jacobian steps processed before convergence. |
 | niter_hj | Number of Hooke-Jeeves moves processed before convergence. |
-| chains | Number of Metropolis-Hastings chains used to sample posterior. |
-| chain_samples | Number of samples taken per Metropolis-Hastings chain. |
+| chns | Number of Metropolis-Hastings chains used to sample posterior. |
+| chn_smpls | Number of samples taken per Metropolis-Hastings chain. |
 | conf_lvl | Confidence level reported for Metropolis-Hastings posterior. |
 | ncycles | Number of solution orbital periods in observational baseline. |
 | max_phase_gap | Largest gap in phase given solution period. |
