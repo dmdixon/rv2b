@@ -1,4 +1,4 @@
-<div align="right"> <img src="rv2b_logo.png" width="320" height="240"/> </div>
+<div align="right"> <img src="rv2b_logo.png" width="240" height="180"/> </div>
 
 # Radial Velocity Two-Body (RV2B)
 
