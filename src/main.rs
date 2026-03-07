@@ -132,7 +132,7 @@ fn gls(time: &Array1<f64>,rv: &Array1<f64>, weights: &Array1<f64>, pmin: f64, pm
 fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
     let decimals: f64 = cli.get_one::<usize>("decimals").unwrap().to_owned() as f64;
 
-    let (mut pmin, mut pmax): (f64,f64) = (0.0, 0.0);
+    let (pmin, pmax): (f64,f64);
     let (mut emin, mut emax): (f64,f64) = (0.0, 0.999);
     let (mut wmin, mut wmax): (f64,f64) = (0.0, 2.0*PI);
     let (mut m0min, mut m0max): (f64,f64) = (0.0, 2.0*PI);
@@ -142,28 +142,30 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
         (pmin, pmax) = (pfix-10.0_f64.powf(-decimals - 1.0),pfix+10.0_f64.powf(-decimals - 1.0));
     }
 
-    else if cli.contains_id("min_P") || cli.contains_id("max_P") {
+    else {
         if cli.contains_id("min_P") {
             pmin= cli.get_one::<f64>("min_P").unwrap().to_owned();
+        }
+
+        else {
+            let min_obs_period = cli.get_one::<f64>("minimum_observations_in_period").unwrap().to_owned();
+            let mut min_tgap: f64 = time[1] - time[0];
+            for i in 1..(time.len()-1) {
+                if time[i+1] - time[i] < min_tgap {
+                    min_tgap = time[i+1] - time[i];
+                }
+            }
+            pmin = min_obs_period*min_tgap;
         }
 
         if cli.contains_id("max_P") {
             pmax = cli.get_one::<f64>("max_P").unwrap().to_owned();
         }
-    }
 
-    else {
-        let min_obs_period = cli.get_one::<f64>("minimum_observations_in_period").unwrap().to_owned();
-        let min_n_orbits = cli.get_one::<f64>("minimum_number_of_orbits").unwrap().to_owned();
-        let mut min_tgap: f64 = time[1] - time[0];
-        for i in 1..(time.len()-1) {
-            if time[i+1] - time[i] < min_tgap {
-                min_tgap = time[i+1] - time[i];
-            }
+        else {
+            let min_n_orbits = cli.get_one::<f64>("minimum_number_of_orbits").unwrap().to_owned();
+            pmax = (time[time.len()-1] - time[0]) / min_n_orbits;
         }
-    
-        pmin = min_obs_period*min_tgap;
-        pmax = (time[time.len()-1] - time[0]) / min_n_orbits;
     }
 
     if cli.contains_id("fix_e") {
@@ -1666,8 +1668,8 @@ fn plot_rv_curve(time: &Array1<f64>, rv_o: &Array1<f64>, rv_err_o: &Array1<f64>,
     }
 
 
-    let chains: String = result["chains"].clone();
-    let chain_samples: String = result["chain_samples"].clone();
+    let chains: String = result["chns"].clone();
+    let chain_samples: String = result["chn_smpls"].clone();
     let p: String = result["P"].clone();
     let p_err: String = result["P_err"].clone();
     let p_mean: String = result["P_mean"].clone();
@@ -2581,9 +2583,9 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     result.insert(String::from("niter_ga"), niter_ga.to_string());
     result.insert(String::from("niter_lm"), niter_lm.to_string());
     result.insert(String::from("niter_hj"), niter_hj.to_string());
-    result.insert(String::from("chains"), chains.to_string());
-    result.insert(String::from("chain_samples"), chain_samples.to_string());
-    result.insert(String::from("confidence_level"), confidence_level.to_string());
+    result.insert(String::from("chns"), chains.to_string());
+    result.insert(String::from("chn_smpls"), chain_samples.to_string());
+    result.insert(String::from("conf_lvl"), confidence_level.to_string());
     result.insert(String::from("ncycles"), ncycles.to_string());
     result.insert(String::from("max_phase_gap"), max_phase_gap.to_string());
     result.insert(String::from("neg_eig_vals"), nevs.to_string());
