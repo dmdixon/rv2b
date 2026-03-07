@@ -52,5 +52,4 @@
 | --metropolis_hastings_chain_samples | --chn_smpls | | Number of samples after burn-in for each chain used in Metropolis-Hastings algorithm. | 1,000 | |
 | --metropolis_hastings_confidence_level | --conf_lvl | | Confidence level reported for Metropolis-Hastings algorithm. | 0.95 | |
 | --time_unit | --t_un | | Time unit of data. | days | Accepts days or years. |
-| --radial_velocity_unit | --rv_un | | Radial velocity unit of data. | km/s | Accepts km/s or m/s. |ime_unit | --t_un | | Time unit of data. | days | Accepts days or years. |
-| --radial_velocity_unit | --rv_un | | Radial velocity unit of data. | km/s | Accepts km/s or m/s. |
+| --radial_velocity_unit | --rv_un | | Radial velocity unit of data. | km/s | Accepts km/s or m/s.
