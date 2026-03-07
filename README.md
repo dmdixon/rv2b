@@ -1,5 +1,6 @@
-# Radial Velocity Two-Body (RV2B)
+<div align="right"> <img src="rv2b_logo.png" width="320" height="240"/> </div>
 
+# Radial Velocity Two-Body (RV2B)
 
 ## Brief Summary:
 
