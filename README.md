@@ -1,10 +1,9 @@
-<div align="right"> <img src="rv2b_logo.png" width="240" height="180"/> </div>
+<div align="center"> <img src="rv2b_logo.png" width="360" height="270"/> </div>
 
-# Radial Velocity Two-Body (RV2B)
 
-## Brief Summary:
+## Synopsis:
 
-RV2B is a command-line interface (CLI) tool designed to simplify the process of accurately determining the best-fit Keplerian elements for the radial velocity data of a given system. This is done by handling the convergence of the nonlinear regression with a combination of powerful algorithm The code is written in the Rust programming language making it highly performant and memory efficient.
+Radial Velocity Two-Body (RV2B) is a command-line interface (CLI) tool designed to greatly simplify the process of accurately determining the best-fit Keplerian elements for a given set of radial velocity observations. This is achieved via intelligent brute force by handling the necessary nonlinear regression with powerful convergence algorithms. The entire code is written in Rust and is consequently highly performant and memory efficient.
 
 ## Quick Start:
 
@@ -18,13 +17,13 @@ To check if installation worked, run "./target/release/rv2b -h" in the "rv2b-mai
 
 ## Basic Examples:
 
-RV2B defaults were carefully chosen to minimize the need to manually set a lot of CLI for basic use cases. The most simple example is the following.
+RV2B defaults were carefully chosen to minimize the need to manually set most CLI arguments for basic use cases. The simplest example is the following.
 
 ```./target/release/rv2b -i rv_data.csv```
 
 This will attempt to fit the data in "rv_data.csv" with the default CLI options. 
 
-**Note:** <span style="color: #FF0000;">All radial velocity data files for RV2B must be in a single character (like a comma) text-delimited file of 2 or 3 columns in order of time, radial velocity and radial velocity error (optional), respectively. All other file formats will fail!</span>
+**Note:** All radial velocity data files for RV2B must be in a single character (like a comma) text-delimited file of 2 or 3 columns in order of time, radial velocity, and radial velocity error (optional), respectively. All other file formats will fail!
 
 An example of a space-delimited radial velocity data file with column names looks like the following.
 
@@ -34,4 +33,6 @@ To perform simultaneous solutions, you run a file listing the file paths for eac
 
 ```./target/release/rv2b -l rv_data_list.txt```
 
-By default, all outputs will be put in a folder called "rv2b_outputs", including the solutions, which are by default stored in the "solutions_table.csv" file. By default the residuals of the solution and a plot of the radial velocity data with the fitted solution are saved. See the export_flags listed by "./target/release/rv2b -h" for more export options.
+By default, all outputs will be saved in a folder called "rv2b_outputs". This includes general solution information, which is by default saved in the "solutions_table.csv" file. Additionally, the solution residuals and a plot of the radial velocity data with the fitted model are saved by default. 
+
+See the [RV2B arguments table](https://github.com/dmdixon/rv2b/blob/main/rv2b_arguments.md) or use ./target/release/rv2b -h to learn more about all ot the RV2B arguments.
