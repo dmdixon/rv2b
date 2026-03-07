@@ -23,5 +23,3 @@ mimalloc = { version = "0.1.48", features = ["v3"] }
 [profile.release]
 codegen-units = 1
 lto = "fat"
-debug = true
-strip = "debuginfo"
