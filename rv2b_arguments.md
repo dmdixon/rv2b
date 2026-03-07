@@ -53,3 +53,5 @@
 | --metropolis_hastings_confidence_level | --conf_lvl | | Confidence level reported for Metropolis-Hastings algorithm. | 0.95 | |
 | --time_unit | --t_un | | Time unit of data. | days | Accepts days or years. |
 | --radial_velocity_unit | --rv_un | | Radial velocity unit of data. | km/s | Accepts km/s or m/s.
+| --help | | -h | Print help. | | |
+| --version | | -V | Print version. | | |
