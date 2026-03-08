@@ -13,7 +13,7 @@ Installation of RV2B on your machine is done in 3 simple steps.
 2. Use the "Code" button on this page to download the "rv2b-main.zip" folder containing the source files for the software and unzip it wherever you would like the code to live.
 3. Go into the "rv2b-main" folder and compile the code with "cargo build --release" and wait for the compilation to finish. Once it is done RV2B is installed! 
    
-To check if installation worked, run "./target/release/rv2b -h" in the "rv2b-main" directory and check that CLI options are printed to the screen. If CLI options aren't printed, make sure the previous steps were followed carefully. If the code is still not functional, email dmdixon1992@gmail.com for further help.
+To check if installation worked, run "./target/release/rv2b -h" in the "rv2b-main" directory and check that CLI arguments are printed to the screen. If CLI arguments aren't printed, make sure the previous steps were followed carefully. If the code is still not functional, email dmdixon1992@gmail.com for further help.
 
 ## Basic Use:
 
@@ -21,7 +21,7 @@ RV2B defaults were carefully chosen to minimize the need to manually set most CL
 
 ```./target/release/rv2b -i ./Latham_2002_171_SB1s/G99-52_rv.csv```
 
-This will attempt to fit the data in "./Latham_2002_171_SB1s/G99-52_rv.csv" with the default CLI options. 
+This will attempt to fit the data in "./Latham_2002_171_SB1s/G99-52_rv.csv" with the default CLI arguments. 
 
 **Note:** All radial velocity data files for RV2B must be in a single character (like a comma) text-delimited file of 2 or 3 columns in order of time, radial velocity, and radial velocity error (optional), respectively. All other file formats will fail!
 
@@ -43,4 +43,4 @@ To perform simultaneous solutions, you can use -l to run a file listing the file
 
 By default, all outputs will be saved in a folder called "rv2b_outputs". This includes general solution information, which is by default saved in the "solutions_table.csv" file. The description of the solution table fields can be found in the RV2B [solution fields table](https://github.com/dmdixon/rv2b/blob/main/rv2b_solution_fields.md). Additionally, the solution residuals and a plot of the radial velocity data with the fitted model are saved by default. 
 
-See the [RV2B arguments table](https://github.com/dmdixon/rv2b/blob/main/rv2b_arguments.md) or use ./target/release/rv2b -h to learn more about all ot the RV2B arguments.
+See the [RV2B arguments table](https://github.com/dmdixon/rv2b/blob/main/rv2b_arguments.md) or use ./target/release/rv2b -h to learn more about all of the RV2B arguments.
