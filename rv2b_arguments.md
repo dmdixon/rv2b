@@ -47,9 +47,9 @@
 | --levenberg_marquardt_maximum_iterations | --lm_max_iter  | | Maximum number of iterations allowed for Levenberg-Marquardt algorithm. | 100 | |
 | --hooke_jeeves_shrink_fraction | --shrk_fact  | | Shriking fraction between Hooke-Jeeves exploratory and pattern moves. | 0.50 | |
 | --hooke_jeeves_maximum_iterations | --hj_max_iter | | Maximum number of iterations allowed for Hooke-Jeeves exploratory moves. | 10,000 | |
-| --metropolis_hastings_chains | --chns | | Number of sampling chains used in Metropolis-Hastings algorithm. | 10 | |
-| --metropolis_hastings_chain_burn_in | --bi | | Number of burn-in samples used in Metropolis-Hastings algorithm. | 10 | |
-| --metropolis_hastings_chain_samples | --chn_smpls | | Number of samples after burn-in for each chain used in Metropolis-Hastings algorithm. | 1,000 | |
+| --metropolis_hastings_chains | --chns | | Number of sampling chains used in Metropolis-Hastings algorithm. | 50 | |
+| --metropolis_hastings_chain_burn_in | --bi | | Number of burn-in samples used in Metropolis-Hastings algorithm. | 500 | |
+| --metropolis_hastings_chain_samples | --chn_smpls | | Number of samples after burn-in for each chain used in Metropolis-Hastings algorithm. | 5,000 | |
 | --metropolis_hastings_confidence_level | --conf_lvl | | Confidence level reported for Metropolis-Hastings algorithm. | 0.95 | |
 | --time_unit | --t_un | | Time unit of data. | days | Accepts days or years. |
 | --radial_velocity_unit | --rv_un | | Radial velocity unit of data. | km/s | Accepts km/s or m/s.
