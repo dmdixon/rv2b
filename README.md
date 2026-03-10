@@ -11,13 +11,13 @@ Installation of RV2B on your machine is done in 3 simple steps.
 
 1. Install the Rust programming language on your machine by following the instructions at https://rust-lang.org/tools/install/. This should be simple and fast (a few minutes at most) for most operating systems.
 2. Use the "Code" button on this page to download the "rv2b-main.zip" folder containing the source files for the software and unzip it wherever you would like the code to live.
-3. Go into the "rv2b-main" folder and compile the code with ```"cargo build --release"``` and wait for the compilation to finish. Once it is done RV2B is installed! 
+3. Go into the "rv2b-main" folder and compile the code with ```cargo build --release``` and wait for the compilation to finish. Once it is done RV2B is installed! 
    
-To check if installation worked, run "./target/release/rv2b -h" in the "rv2b-main" directory and check that CLI arguments are printed to the screen. If CLI arguments aren't printed, make sure the previous steps were followed carefully. If the code is still not functional, email dmdixon1992@gmail.com for further help.
+To check if installation worked, run ```./target/release/rv2b -h``` in the "rv2b-main" directory and check that CLI arguments are printed to the screen. If CLI arguments aren't printed, make sure the previous steps were followed carefully. If the code is still not functional, email dmdixon1992@gmail.com for further help.
 
 ## Basic Use:
 
-RV2B defaults were carefully chosen to minimize the need to manually set most CLI arguments for basic use cases. This can be illustrated with some radial velocity data included in the repository. The radial velocity is published by the study of [Latham et al. (2002)](https://ui.adsabs.harvard.edu/abs/2002AJ....124.1144L/abstract), and [the catalog](https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/AJ/124/1144) is hosted by the VizieR astronomy catalog service. For a bare-bones example you can use the following commands to unzip the folder containing the Latham data (Latham_2002_171_SB1s.zip) and solve the orbit of target G99-52.
+RV2B defaults were carefully chosen to minimize the need to manually set most CLI arguments for basic use cases. This can be illustrated with some radial velocity data included in the repository. The included radial velocity time series data were published by the study of [Latham et al. (2002)](https://ui.adsabs.harvard.edu/abs/2002AJ....124.1144L/abstract), and [the catalog](https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/AJ/124/1144) of the 171 targets is hosted by the VizieR astronomy catalog service. For a bare-bones example, you can use the following commands to unzip the folder containing the Latham data (Latham_2002_171_SB1s.zip) and solve the orbit of target G99-52.
 
 ```unzip Latham_2002_171_SB1s.zip```
 
@@ -41,7 +41,7 @@ To perform simultaneous solutions, you can use -l to run a file listing the file
 
 ```./target/release/rv2b -l ./Latham_2002_171_SB1s_filepaths.txt```
 
-**Note:** 15 of the Latham targets only have preliminary published solutions due to a lack of data.
+**Note:** 15/171 of the Latham targets only have preliminary published solutions due to a lack of data.
 
 By default, all outputs will be saved in a folder called "rv2b_outputs". This includes general solution information, which is by default saved in the "solutions_table.csv" file. The description of the solution table fields can be found in the [RV2B solution fields table](https://github.com/dmdixon/rv2b/blob/main/rv2b_solution_fields.md). Additionally, the solution residuals and a plot of the radial velocity data with the fitted model are saved by default. 
 
