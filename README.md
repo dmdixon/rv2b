@@ -5,6 +5,17 @@
 
 Radial Velocity Two-Body (RV2B) is a command-line interface (CLI) tool designed to greatly simplify the process of accurately determining the best-fit Keplerian elements for a given set of radial velocity observations. This is achieved via intelligent brute force by handling the necessary nonlinear regression with powerful convergence algorithms. The entire code is written in Rust and is consequently highly performant and memory efficient.
 
+
+## RV2B Algorithms:
+
+1. Generalized Lomb-Scargle Periodogram [Period Estimation]
+2. Latin Hypercube [N-dim Uniform Seeding]
+3. Halley's Method [Mean Anomaly -> Eccentric Anomaly]
+4. Genetic Algorithm + Simple Linear Regression [Evolutionary Global Convergence]
+5. Levenberg-Marquardt [Derivative Local Convergence]
+6. Hooke-Jeeves [Non-Derivative Local Convergence]
+7. Metropolis-Hastings [Posterior Samplings]
+
 ## Installation:
 
 Installation of RV2B on your machine is done in 3 simple steps.
@@ -31,7 +42,7 @@ An example of a space-delimited radial velocity data file with column names woul
 
 ```./target/release/rv2b -i some_single_spaced_rv_data.txt -d " " -n true```
 
-Solutions for the Latham dataset with default settings can take around a few minutes to run. However, this is mostly due to the default Genetic Algorithm being significantly overtuned for well-sampled targets. This is done to have extra robustness against early local convergence as a default behavior, but in many cases, it is overkill. For example, just rerunning the first example with a population of 1,000 (default = 100,000) substantially lowers the runtime (near-instant), but will still generally return an accurate solution.
+Solutions for the Latham dataset with default settings can take around a few minutes to run. However, this is mostly due to the default Genetic Algorithm being significantly overtuned for well-sampled targets. This is done to have extra robustness against early local convergence as a default behavior, but in many cases, it is overkill. For example, just rerunning the first example with a Genetic Algorithm population of 1,000 (default = 100,000) substantially lowers the runtime (near-instant), but will still generally return an accurate solution.
 
 ```./target/release/rv2b -i ./Latham_2002_171_SB1s/G99-52_rv.csv -p 1000```
 
