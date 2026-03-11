@@ -47,7 +47,7 @@ Solutions for the Latham dataset with default settings can take around a few min
 
 ```./target/release/rv2b -i ./Latham_2002_171_SB1s/G99-52_rv.csv -p 1000```
 
-**Note:** There isn't a single combination of computationally conservative RV2B arguments that is known a priori to maximize the runtime and still get an accurate solution for every use case. For investigations of single targets, it may be best to start small and progressively ramp up on runtime as needed. The CLI format of RV2B is highly amendable to code wrapping, so pipeline logic handled by scripting (Python, bash, etc.) could be used to automate the refitting process for many targets. However, running the code for a few minutes to be more certain of a high-quality solution is the easiest approach if the waiting time is not a concern.
+**Note:** There isn't a single combination of computationally conservative RV2B arguments that is known a priori to maximize the runtime and still get an accurate solution for every use case. For investigations of single targets, it may be best to start small and progressively ramp up on runtime as needed. The CLI format of RV2B is highly amendable to code wrapping, so pipeline logic handled by scripting (Python, bash, etc.) could be used to automate a refitting procedure for many targets. However, running the code for a few minutes to be more certain of a high-quality solution is the easiest approach if the waiting time is not a concern.
 
 To fit simultaneous solutions with multiprocessing, you can use -l to run a file listing the file paths for each radial velocity data file on separate lines. A simple example using the included Latham dataset is the following.
 
