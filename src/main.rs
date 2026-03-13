@@ -2919,7 +2919,7 @@ fn main() {
     .arg(
         Arg::new("min_e")
         .value_parser(value_parser!(f64))
-        .long("minimum_e")
+        .long("min_e")
         .help("Set minimum eccentricity allowed.")
     )
     .arg(
