@@ -14,7 +14,7 @@ Radial Velocity Two-Body (RV2B) is a command-line interface (CLI) tool designed 
 4. Genetic Algorithm + Simple Linear Regression [Evolutionary Global Convergence]
 5. Levenberg-Marquardt [Derivative Local Convergence]
 6. Hooke-Jeeves [Non-Derivative Local Convergence]
-7. Metropolis-Hastings [Posterior Samplings]
+7. Metropolis-Hastings [Posterior Sampling]
 
 ## Installation:
 
