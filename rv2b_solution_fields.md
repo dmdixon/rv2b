@@ -47,12 +47,12 @@
 | M0_std | Standard deviation of perastron phase posterior. |
 | M0_l | Lower bound for periastron phase posterior confidence level. |
 | M0_u | Upper bound for periastron phase posterior confidence level. |
-| K | Best-fit semi-major amplitude. |
-| K_err | Hessian uncertainty for semi-major amplitude. |
-| K_mean | Mean of semi-major amplitude posterior. |
-| K_std | Standard deviation of semi-major amplitude posterior. |
-| K_l | Lower bound for semi-major amplitude posterior confidence level. |
-| K_u | Upper bound for semi-major amplitude posterior confidence level. |
+| K | Best-fit semi-amplitude. |
+| K_err | Hessian uncertainty for semi-amplitude. |
+| K_mean | Mean of semi-amplitude posterior. |
+| K_std | Standard deviation of semi-amplitude posterior. |
+| K_l | Lower bound for semi-amplitude posterior confidence level. |
+| K_u | Upper bound for semi-amplitude posterior confidence level. |
 | v0 | Best-fit systemic velocity. |
 | v0_err | Hessian uncertainty for systemic velocity. |
 | v0_mean | Mean of systemic velocity posterior. |
