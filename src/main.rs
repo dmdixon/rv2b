@@ -296,7 +296,7 @@ fn roulette_selection(scores: &Array1<f64>) -> Vec<usize> {
     let population: usize = scores.len();
 
     let mut indices: Vec<usize> = (0..scores.len()).collect();
-    indices.sort_by(|&i1, &i2| scores[i1].partial_cmp(&scores[i2]).unwrap());
+    indices.sort_by(|&i1, &i2| scores[i1].total_cmp(&scores[i2]));
 
     let mut roulette_probs: Array1<f64> = Array1::<f64>::zeros(population);
     let mut rs: f64 = 0.0;
@@ -369,7 +369,7 @@ fn init_pop(time: &Array1<f64> , rv: &Array1<f64>, weights: &Array1<f64>, bounds
         }
         
         let mut indices: Vec<_> = (0..ls_powers.len()).collect();
-        indices.sort_by(|&i1, &i2| ls_powers[i1].partial_cmp(&ls_powers[i2]).unwrap());
+        indices.sort_by(|&i1, &i2| ls_powers[i1].total_cmp(&ls_powers[i2]));
 
         let index = indices[ls_nfreqs-1];
         let ls_freq = ls_freqs[index];
@@ -1698,15 +1698,15 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
         asini_array[i] = orbit_samples_vec[i][7];
         f_m_array[i] = orbit_samples_vec[i][8];
     }
-    p_array.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    e_array.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    w_array.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    m0_array.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    k_array.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    v0_array.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    t0_array.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    asini_array.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    f_m_array.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    p_array.sort_by(|a, b| a.total_cmp(b));
+    e_array.sort_by(|a, b| a.total_cmp(b));
+    w_array.sort_by(|a, b| a.total_cmp(b));
+    m0_array.sort_by(|a, b| a.total_cmp(b));
+    k_array.sort_by(|a, b| a.total_cmp(b));
+    v0_array.sort_by(|a, b| a.total_cmp(b));
+    t0_array.sort_by(|a, b| a.total_cmp(b));
+    asini_array.sort_by(|a, b| a.total_cmp(b));
+    f_m_array.sort_by(|a, b| a.total_cmp(b));
 
     let p_mean: f64 = round_f64(p_array.iter().sum::<f64>()/(p_array.len() as f64), decimals);
     let e_mean: f64 = round_f64(e_array.iter().sum::<f64>()/(e_array.len() as f64), decimals);
@@ -1868,7 +1868,7 @@ fn plot_rv_curve(time: &Array1<f64>, rv_o: &Array1<f64>, rv_err_o: &Array1<f64>,
     let model_rv: Array1<f64> = rv_curve_model2(&model_time, [p_float, e_float, w_float, m0_float, k_float, v0_float], tolerance, halleys_max_iter);
  
     let mut indices: Vec<_> = (0..phase_o.len()).collect();
-    indices.sort_by(|&i1, &i2| phase_o[i1].partial_cmp(&phase_o[i2]).unwrap());
+    indices.sort_by(|&i1, &i2| phase_o[i1].total_cmp(&phase_o[i2]));
     for n in 0..indices.len() {
         phase[n] = phase_o[indices[n]];
         rv[n] = rv_o[indices[n]];
@@ -2456,7 +2456,7 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     let mut rv_err: Array1<f64> = rv_err_o.clone();
 
     let mut indices: Vec<_> = (0..time.len()).collect();
-    indices.sort_by(|&i1, &i2| time[i1].partial_cmp(&time[i2]).unwrap());
+    indices.sort_by(|&i1, &i2| time[i1].total_cmp(&time[i2]));
 
     for i in 0..time.len() {
         time[i] = time_o[indices[i]];
@@ -2604,7 +2604,7 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     }
 
     let mut rv_res_indices: Vec<_> = (0..rv.len()).collect();
-    rv_res_indices.sort_by(|&i1, &i2| rv_res[i1].partial_cmp(&rv_res[i2]).unwrap());
+    rv_res_indices.sort_by(|&i1, &i2| rv_res[i1].total_cmp(&rv_res[i2]));
 
     let lf_result = lilliefors(rv_res.clone()).unwrap();
     let lf_d = round_f64(lf_result.statistic, decimals);
@@ -2651,7 +2651,7 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     let phase_o: Array1<f64> = (time.clone()-t0)/orbit_param[0] - ((time.clone()-t0)/orbit_param[0]).floor();
     let mut phase: Array1<f64> = phase_o.clone();
     let mut indices: Vec<_> = (0..phase.len()).collect();
-    indices.sort_by(|&i1, &i2| phase[i1].partial_cmp(&phase[i2]).unwrap());
+    indices.sort_by(|&i1, &i2| phase[i1].total_cmp(&phase[i2]));
     for n in 0..indices.len() {
         phase[n] = phase_o[indices[n]]
     }
