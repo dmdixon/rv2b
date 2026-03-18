@@ -2567,42 +2567,6 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     
     let rv_res: Array1<f64> = rv.clone()-model_rv.clone();
 
-    if export_r {
-
-        let residual_directory_exists: bool = Path::new((output_directory.clone() +  "/residuals").as_str()).is_dir();
-
-        if residual_directory_exists {
-
-        }
-        else {
-            let _ = create_dir((output_directory.clone() + "/residuals").as_str());
-        }
-
-        let mut output_file = OpenOptions::new().create(true).truncate(true).write(true).open(output_directory + "/residuals/" + name.as_str() + "_residuals.csv").unwrap();
-
-        let mut values: Vec<String>;
-
-        if ncols < 3 {
-            values = vec![time[0].to_string(), rv_res[0].to_string()];
-            write(&output_file,values);
-            for n in 1..rv_res.len() {
-                values = vec![time[n].to_string(), rv_res[n].to_string()];
-                let _ = output_file.write_all("\n".as_bytes());
-                write(&output_file,values);
-            }
-        }
-
-        else {
-            values = vec![time[0].to_string(), rv_res[0].to_string(), rv_err[0].to_string()];
-            write(&output_file,values);
-            for n in 1..rv_res.len() {
-                values = vec![time[n].to_string(), rv_res[n].to_string(), rv_err[n].to_string()];
-                let _ = output_file.write_all("\n".as_bytes());
-                write(&output_file,values);
-            }
-        }
-    }
-
     let mut rv_res_indices: Vec<_> = (0..rv.len()).collect();
     rv_res_indices.sort_by(|&i1, &i2| rv_res[i1].total_cmp(&rv_res[i2]));
 
@@ -2636,6 +2600,42 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     let mut log_kos_dof: f64 = f64::NAN;
     let mut chi2_n: f64 = f64::NAN;
     let mut chi2_dof: f64 = f64::NAN;
+
+    if export_r {
+        let residual_directory_exists: bool = Path::new((output_directory.clone() +  "/residuals").as_str()).is_dir();
+
+        if residual_directory_exists {
+
+        }
+        else {
+            let _ = create_dir((output_directory.clone() + "/residuals").as_str());
+        }
+
+        let mut output_file = OpenOptions::new().create(true).truncate(true).write(true).open(output_directory + "/residuals/" + name.as_str() + "_RMS_"+rms.to_string().as_str()+"_P_"+orbit_param[0].to_string().as_str()+"_e_"+orbit_param[1].to_string().as_str() + "_residuals.csv").unwrap();
+
+        let mut values: Vec<String>;
+
+        if ncols < 3 {
+            values = vec![time[0].to_string(), rv_res[0].to_string()];
+            write(&output_file,values);
+            for n in 1..rv_res.len() {
+                values = vec![time[n].to_string(), rv_res[n].to_string()];
+                let _ = output_file.write_all("\n".as_bytes());
+                write(&output_file,values);
+            }
+        }
+
+        else {
+            values = vec![time[0].to_string(), rv_res[0].to_string(), rv_err[0].to_string()];
+            write(&output_file,values);
+            for n in 1..rv_res.len() {
+                values = vec![time[n].to_string(), rv_res[n].to_string(), rv_err[n].to_string()];
+                let _ = output_file.write_all("\n".as_bytes());
+                write(&output_file,values);
+            }
+        }
+    }
+
     if dof > 0 {
         rms_dof = round_f64((rss/(dof as f64)).sqrt(), decimals);
         skew_dof = round_f64(3.0 * (rv_res_mean - rv_res_med)/rms_dof, decimals);
