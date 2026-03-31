@@ -130,7 +130,9 @@ fn gls(time: &Array1<f64>,rv: &Array1<f64>, weights: &Array1<f64>, pmin: f64, pm
 
 //Function for deriving search boundaries for nonlinear parameters.
 fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
+    let tolerance = f64::EPSILON *cli.get_one::<f64>("tolerance").unwrap().to_owned();
     let decimals: f64 = cli.get_one::<usize>("decimals").unwrap().to_owned() as f64;
+    let precision: f64 = 10.0_f64.powf(-decimals - 1.0);
 
     let (pmin, pmax): (f64,f64);
     let (mut emin, mut emax): (f64,f64) = (0.0, 0.999);
@@ -139,7 +141,7 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
 
     if cli.contains_id("fix_P") {
         let pfix: f64 = cli.get_one::<f64>("fix_P").unwrap().to_owned();
-        (pmin, pmax) = (pfix-10.0_f64.powf(-decimals - 1.0),pfix+10.0_f64.powf(-decimals - 1.0));
+        (pmin, pmax) = (pfix-precision,pfix+precision);
     }
 
     else {
@@ -149,9 +151,9 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
 
         else {
             let min_obs_period = cli.get_one::<f64>("minimum_observations_in_period").unwrap().to_owned();
-            let mut min_tgap: f64 = time[1] - time[0];
-            for i in 1..(time.len()-1) {
-                if time[i+1] - time[i] < min_tgap {
+            let mut min_tgap = f64::INFINITY;
+            for i in 0..(time.len()-1) {
+                if time[i+1] - time[i] < min_tgap && time[i+1] - time[i] > tolerance {
                     min_tgap = time[i+1] - time[i];
                 }
             }
@@ -170,7 +172,7 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
 
     if cli.contains_id("fix_e") {
         let efix: f64 = cli.get_one::<f64>("fix_e").unwrap().to_owned();
-        (emin, emax) = (efix-10.0_f64.powf(-decimals - 1.0),efix+10.0_f64.powf(-decimals - 1.0));
+        (emin, emax) = (efix-precision,efix+precision);
     }
 
     else if cli.contains_id("min_e") || cli.contains_id("maxe") {
@@ -185,7 +187,7 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
 
     if cli.contains_id("fix_w") {
         let wfix: f64 = cli.get_one::<f64>("fix_w").unwrap().to_owned();
-        (wmin, wmax) = (wfix-10.0_f64.powf(-decimals - 1.0),wfix+10.0_f64.powf(-decimals - 1.0));
+        (wmin, wmax) = (wfix-precision,wfix+precision);
     }
 
     else if cli.contains_id("min_w") || cli.contains_id("max_w") {
@@ -200,7 +202,7 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
 
     if cli.contains_id("fix_M0") {
         let m0fix: f64 = cli.get_one::<f64>("fix_M0").unwrap().to_owned();
-        (m0min, m0max) = (m0fix-10.0_f64.powf(-decimals - 1.0),m0fix+10.0_f64.powf(-decimals - 1.0));
+        (m0min, m0max) = (m0fix-precision,m0fix+precision);
     }
 
     else if cli.contains_id("min_M0") || cli.contains_id("max_M0") {
@@ -1288,11 +1290,11 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
     let h_lbound: f64 = 10.0_f64.powf(-decimals);
     let h_ubounds: [f64;6] = [orbit_param[0],1.0,2.0*PI,2.0*PI,orbit_param[4]+orbit_param[5].abs(),orbit_param[4]+orbit_param[5].abs()];
     for n in 0..h_array.len() {
-        if (uncertainties[n] < h_lbound) | (uncertainties[n] > h_ubounds[n]) {
+        if (uncertainties[n] < h_lbound) | (uncertainties[n] > h_ubounds[n]) | h_array[n].is_nan() {
             h_array[n] = 0.1*orbit_param[n].abs() + 10.0_f64.powf(-decimals).sqrt();
         }
     }
-    
+
     let normal_p = Normal::new(0.0, h_array[0]).unwrap();
     let normal_e = Normal::new(0.0, h_array[1]).unwrap();
     let normal_w = Normal::new(0.0, h_array[2]).unwrap();
@@ -2535,7 +2537,7 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     let h_lbound: f64 = 10.0_f64.powf(-decimals);
     let h_ubounds: [f64;6] = [orbit_param_lm[0],1.0,2.0*PI,2.0*PI,orbit_param_lm[4]+orbit_param_lm[5].abs(),orbit_param_lm[4]+orbit_param_lm[5].abs()];
     for n in 0..h_array.len() {
-        if (uncertainties_lm[n] < h_lbound) | (uncertainties_lm[n] > h_ubounds[n]) {
+        if (uncertainties_lm[n] < h_lbound) | (uncertainties_lm[n] > h_ubounds[n]) | h_array[n].is_nan() {
             h_array[n] = 0.1*orbit_param_lm[n].abs() + 10.0_f64.powf(-decimals).sqrt();
         }
     }
@@ -3125,7 +3127,6 @@ fn main() {
         .help("Radial velocity unit of data.")
     )
     .get_matches();
-
 
     let output_directory: String = cli.get_one::<String>("output_directory").unwrap().to_owned();
     let solution_table: &str = cli.get_one::<String>("solution_table").unwrap().as_str();
