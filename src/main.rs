@@ -2441,7 +2441,7 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
         let obs = obs_result.unwrap();
         time_vec.push(obs[0].parse::<f64>().unwrap());
         rv_vec.push(obs[1].parse::<f64>().unwrap());
-        if rv_err_weights & (ncols > 2) {
+        if ncols > 2 {
             rv_err_vec.push(obs[2].parse::<f64>().unwrap());
         }
         else {
@@ -2466,9 +2466,9 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
         rv_err[i] = rv_err_o[indices[i]];
     }
 
-    let weights: Array1<f64> = rv_err.powf(-2.0);
-    if  ncols < 3 {
-        rv_err = Array1::<f64>::zeros(rv.len());
+    let mut weights: Array1<f64> = rv_err.powf(-2.0);
+    if  !rv_err_weights & (ncols > 2) {
+        weights = Array1::<f64>::ones(rv.len());
     }
 
     let bounds: [(f64,f64);4] = derive_bounds(&time,cli);
@@ -2549,7 +2549,7 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     let (cov_hj, _): (DMatrix<f64>, usize) = covariance_matrix(&hess_hj, tolerance);
     let uncertainties_hj: [f64;6] = [round_f64(cov_hj[(0,0)].sqrt(), decimals),round_f64(cov_hj[(1,1)].sqrt(), decimals),round_f64(cov_hj[(2,2)].sqrt(), decimals),round_f64(cov_hj[(3,3)].sqrt(), decimals),round_f64(cov_hj[(4,4)].sqrt(), decimals),round_f64(cov_hj[(5,5)].sqrt(), decimals)];
 
-    let (orbit_param, score, mh): ([f64;6], f64, [f64;36]) = metropolis_hastings(&time, &rv, &weights, orbit_param_hj, uncertainties_hj, score_hj, asini_coeff, bmf_coeff, bounds, name.clone(), export_mh, cli);
+    let (orbit_param, _, mh): ([f64;6], f64, [f64;36]) = metropolis_hastings(&time, &rv, &weights, orbit_param_hj, uncertainties_hj, score_hj, asini_coeff, bmf_coeff, bounds, name.clone(), export_mh, cli);
     let ncycles: f64 = round_f64((time[time.len()-1] - time[0])/orbit_param[0], decimals);
     let model_rv: Array1<f64> = rv_curve_model2(&time, orbit_param, tolerance, halleys_max_iter);
 
@@ -2643,10 +2643,10 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
         skew_dof = round_f64(3.0 * (rv_res_mean - rv_res_med)/rms_dof, decimals);
         log_kos_dof = round_f64((orbit_param[4]/rms_dof).log10(), decimals); 
     }
-    if rv_err_weights & (ncols > 2) {
-        chi2_n = round_f64(score.powf(-1.0)/(rv.len() as f64), decimals);
+    if has_errors {
+        chi2_n = round_f64(((rv.clone() - model_rv.clone())/rv_err.clone()).powf(2.0).sum()/(rv.len() as f64), decimals);
         if dof > 0 {
-            chi2_dof = round_f64(score.powf(-1.0)/(dof as f64), decimals);
+            chi2_dof = round_f64(((rv.clone() - model_rv.clone())/rv_err.clone()).powf(2.0).sum()/(dof as f64), decimals);
         }
     }
 
