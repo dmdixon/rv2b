@@ -2857,7 +2857,7 @@ fn main() {
     .arg(
         Arg::new("radial_velocity_error_weights")
         .value_parser(value_parser!(bool))
-        .visible_alias("weights")
+        .short('w')
         .long("radial_velocity_error_weights")
         .default_value("true")
         .help("Use radial velocity errors for score weighting.")
