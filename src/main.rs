@@ -1429,6 +1429,7 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                         f_m_old = f_m_new;
                         
                         lnlikelihood_old = lnlikelihood_new;
+                        score_old = score_new;
                     }
 
                     else {
@@ -1447,13 +1448,14 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                             f_m_old = f_m_new;
                 
                             lnlikelihood_old = lnlikelihood_new;
+                            score_old = score_new;
                         }
                     }
                 }
             }
         
             for _ in 0..chain_samples {
-                values = vec![p_old.to_string(), e_old.to_string(), w_old.to_string(), m0_old.to_string(), k_old.to_string(), v0_old.to_string(), score.to_string()];
+                values = vec![p_old.to_string(), e_old.to_string(), w_old.to_string(), m0_old.to_string(), k_old.to_string(), v0_old.to_string(), score_old.to_string()];
                 let _ = output_file.write_all("\n".as_bytes());
                 write(&output_file,values);
 
@@ -1473,6 +1475,7 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                     model_rv = rv_curve_model2(time, [p_new,e_new,w_new,m0_new,k_new,v0_new], tolerance, halleys_max_iter);
 
                     lnlikelihood_new = lnlikelihood(rv, &model_rv);
+                    score_new = score_function(rv, &model_rv,weights);
 
                     likelihood_ratio = E.powf(lnlikelihood_new - lnlikelihood_old);
 
@@ -1489,6 +1492,7 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                         f_m_old = f_m_new;
                         
                         lnlikelihood_old = lnlikelihood_new;
+                        score_old = score_new;
                     }
 
                     else {
@@ -1507,6 +1511,7 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                             f_m_old = f_m_new;
                 
                             lnlikelihood_old = lnlikelihood_new;
+                            score_old = score_new;
                         }
                     }
                 }
