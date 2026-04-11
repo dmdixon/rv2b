@@ -12,7 +12,7 @@
 | --list_files | | -l | List of radial velocity curve files to fit. | | Mutually exclusive with --input_file. |
 | --output_directory | | -o | Name of directory containing RV2B outputs. | ./rv2b_outputs | |
 | --export_flags | | -e | Export flags for RV2B data products. (0-7):<br><br> 0 -> Save solution(s) to .csv solutions table.<br><br> 1 -> Save solution plot(s) to .svg image in "plots" directory.<br><br> 2 -> Save residual RV curve(s) to .csv file in "residuals" directory.<br><br> 3 -> Save Generalized Lomb-Scargle periodogram(s) to .csv file in "periodograms" directory.<br><br> 4 -> Save Genetic Algorithm samples to .csv file in "samples" directory.<br><br> 5-> Save Levenberg-Marquardt samples to .csv file in "samples" directory.<br><br> 6 -> Save Hooke-Jeeves samples to .csv file in "samples" directory.<br><br> 7 -> Save Metropolis-Hastings samples to .csv file in "samples" directory.  | 012 | Can set many flags at once. For everything use 01234567. Be aware of disk space when saving samples, especially from Genetic Algorithm. |
-| --solution_table | | -o | Name of output table containing RV2B solutions. | rv2b_solutions.csv | |
+| --solution_table | | -s | Name of output table containing RV2B solutions. | rv2b_solutions.csv | |
 | --delimiter | | -d | Column delimiter for radial velocity data file. | , | |
 --named_columns | | -n | Presence of radial velocity data file(s) column names. | false | |
 | --comment | | -c | Start of line comment character in the radial velocity data file(s). | # | |
