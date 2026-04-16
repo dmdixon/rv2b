@@ -36,13 +36,14 @@
 | --lomb_scargle_minimum_observations | --ls_min_obs | | Minimum number of observations needed to run Lomb-Scargle periodogram. | 3 |
 | --lomb_scargle_frequencies | --ls_freqs | | Number of Lomb-Scargle periodogram trial frequencies. | 1,000,000 | 
 | --lomb_scargle_trust_power | --ls_tp | | Lowest Lomb-Scargle power needed to constrain Genetic Algorithm. | 0.45 |
-| --lomb_scargle_trust_fraction | --ls_tf | | Fraction of adopted Lomb-Scargle period the Genetic Algorithmm searches around. | 0.05 |
+| --lomb_scargle_trust_fraction | --ls_tf | | Fraction of adopted Lomb-Scargle period the Genetic Algorithm searches around. | 0.05 |
 | --halleys_maximum_iterations | --hall_max_iter | | Maximum number of iterations allowed for Halley's method. | 20 |
-| --genetic_algorithm_population | | -p | Number of orbital samples per Genetic Algorithm generation. | 100,000 |
-| --genetic_algorithm_minimum_generation | | -g | Minimum number of Genetic Algorithm generations. | 10 |
+| --genetic_algorithm_population | | -p | Number of orbital samples per Genetic Algorithm generation. | 10,000 |
+| --genetic_algorithm_minimum_generation | | -g | Minimum number of Genetic Algorithm generations. | 100 |
 | --genetic_algorithm_maximum_generation | | -G | Maximum number of Genetic Algorithm generations. | 1,000 |
 | --genetic_algorithm_sbx_distribution_index | --sbx_di  | | Distribution index for SBX crossover procedure. | 2.0 |
 | --genetic_algorithm_mutation_probability | --mut_prob  | | Mutation probability of crossover child. | 0.01 | |
+| --genetic_algorithm_elitism_fractions | --elite_frac | | Elitism fraction for parent selection. | 0.1 | |
 | --levenberg_marquardt_damping_factor | --damp_fact  | | Damping factor for Levenberg-Marquardt algorithm. | 0.0001 | |
 | --levenberg_marquardt_maximum_iterations | --lm_max_iter  | | Maximum number of iterations allowed for Levenberg-Marquardt algorithm. | 100 | |
 | --hooke_jeeves_shrink_fraction | --shrk_fact  | | Shriking fraction between Hooke-Jeeves exploratory and pattern moves. | 0.50 | |
