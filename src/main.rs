@@ -294,17 +294,24 @@ fn bounds_check_bool(sample_param: [f64;4], bounds: [(f64,f64);4]) -> bool {
 }
 
 //Genetic Algorithm function used for selecting parents to propogate to new generations.
-fn roulette_selection(scores: &Array1<f64>) -> Vec<usize> {
+fn roulette_selection(scores: &Array1<f64>, elite_frac: f64) -> Vec<usize> {
     let population: usize = scores.len();
+    let elites: usize = (elite_frac * (population as f64)).round() as usize; 
 
-    let mut indices: Vec<usize> = (0..scores.len()).collect();
-    indices.sort_by(|&i1, &i2| scores[i1].total_cmp(&scores[i2]));
+    let mut sort_indices: Vec<usize> = (0..population).collect();
+    sort_indices.sort_by(|&i1, &i2| scores[i1].total_cmp(&scores[i2]));
+
+    let mut choice_indices: Vec<usize> = vec![0;population];
 
     let mut roulette_probs: Array1<f64> = Array1::<f64>::zeros(population);
     let mut rs: f64 = 0.0;
 
+    for n in 0..elites {
+        choice_indices[n] = sort_indices[population - n - 1];
+    }
+
     for n in 0..population {
-        rs += (scores[n] / scores[indices[0]]).powf((population as f64).log10() / (scores[indices[population - 1]] / scores[indices[0]]).log10());
+        rs += (scores[n] / scores[sort_indices[0]]).powf((population as f64).log10() / (scores[sort_indices[population - 1]] / scores[sort_indices[0]]).log10());
         roulette_probs[n] = rs;
     }
 
@@ -313,16 +320,16 @@ fn roulette_selection(scores: &Array1<f64>) -> Vec<usize> {
     let mut rng = rand::thread_rng();
     let mut arrow: f64;
     let mut choice: usize;
-    for n in 0..population {
+    for n in elites..population {
         arrow = rng.gen();
         choice = 0;
         while roulette_probs[choice] < arrow && choice < population {
             choice+=1;
         }
-        indices[n] = choice;
+        choice_indices[n] = choice;
     }
 
-    indices
+    choice_indices
 }
 
 //Function used to initialize first Genetic Algorithm generation. 
@@ -838,6 +845,7 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
     let mut max_gens: usize = cli.get_one::<usize>("genetic_algorithm_maximum_generations").unwrap().to_owned();
     let sbx_distr_index = cli.get_one::<f64>("genetic_algorithm_sbx_distribution_index").unwrap().to_owned();
     let mut_prob = cli.get_one::<f64>("genetic_algorithm_mutation_probability").unwrap().to_owned();
+    let elite_frac = cli.get_one::<f64>("genetic_algorithm_elitism_fraction").unwrap().to_owned();
     let output_directory: String = cli.get_one::<String>("output_directory").unwrap().to_owned();
  
     if min_gens > max_gens {
@@ -900,7 +908,7 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
             }
     
             if gen < max_gens {
-                let roulette_indices = roulette_selection(&scores_array);
+                let roulette_indices = roulette_selection(&scores_array,elite_frac);
                 cross_over_mutate(&mut params_array,&roulette_indices,population,sbx_distr_index,mut_prob,decimals,bounds);
                 bounds_check(&mut params_array, bounds);
             }
@@ -929,7 +937,7 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
             }
 
             if gen < max_gens {
-                let roulette_indices = roulette_selection(&scores_array);
+                let roulette_indices = roulette_selection(&scores_array,elite_frac);
                 cross_over_mutate(&mut params_array,&roulette_indices,population,sbx_distr_index,mut_prob,decimals,bounds);
                 bounds_check(&mut params_array, bounds);
             }
@@ -3016,7 +3024,7 @@ fn main() {
         .value_parser(value_parser!(usize))
         .short('p')
         .long("genetic_algorithm_population")
-        .default_value("100000")
+        .default_value("10000")
         .help("Number of orbital samples per generation.")
     )
     .arg(
@@ -3024,7 +3032,7 @@ fn main() {
         .value_parser(value_parser!(usize))
         .short('g')
         .long("genetic_algorithm_minimum_generations")
-        .default_value("10")
+        .default_value("100")
         .help("Minimum number of Genetic Algorithm generations.")
     )
     .arg(
@@ -3040,7 +3048,7 @@ fn main() {
         .value_parser(value_parser!(f64))
         .visible_alias("sbx_di")
         .long("genetic_algorithm_sbx_distribution_index")
-        .default_value("2.0")
+        .default_value("20.0")
         .help("SBX crossover distribution index.")
     )
     .arg(
@@ -3049,6 +3057,14 @@ fn main() {
         .visible_alias("mut_prob")
         .long("genetic_algorithm_mutation_probability")
         .default_value("0.01")
+        .help("Mutation probability of crossover child.")
+    )
+    .arg(
+        Arg::new("genetic_algorithm_elitism_fraction")
+        .value_parser(value_parser!(f64))
+        .visible_alias("elite_frac")
+        .long("genetic_algorithm_elitism_fraction")
+        .default_value("0.1")
         .help("Mutation probability of crossover child.")
     )
     .arg(
@@ -3070,7 +3086,7 @@ fn main() {
     .arg(
         Arg::new("hooke_jeeves_shrink_fraction")
         .value_parser(value_parser!(f64))
-        .visible_alias("shrk_fact")
+        .visible_alias("shrk_fract")
         .long("hooke_jeeves_shrink_fraction")
         .default_value("0.50")
         .help("Shriking fraction between Hooke-Jeeves exploratory and pattern moves.")
