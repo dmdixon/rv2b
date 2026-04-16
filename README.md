@@ -36,14 +36,14 @@ RV2B defaults were carefully chosen to minimize the need to manually set most CL
 
 This will attempt to fit the data in "./Latham_2002_171_SB1s/G99-52_rv.csv" with the default CLI arguments. By default, RV2B will output a plot depicting the model fit and save it to disk. The following image is such a plot and shows an example default fit for G99-52.
 
-![Example of a default fit for Latham target Latham target G99-52.](G99-52_rv_RMS_0.60039_P_559.32818_e_0.21431_rv2b_fit.svg)
+![Example of a default fit for Latham target Latham target G99-52.](G99-52_rv_RMS_0.58937_P_557.97352_e_0.21564_rv2b_fit.svg)
 <p align="center"><b>Example of a default fit for Latham target G99-52.</b></p> 
 
 All radial velocity data files for RV2B must be in a single character (like a comma) text-delimited file of 2 or 3 columns in order of time, radial velocity, and radial velocity error (optional), respectively. All other file formats will fail! An example of a space-delimited radial velocity data file with column names would look something like.
 
 ```./target/release/rv2b -i some_single_spaced_rv_data.txt -d " " -n true```
 
-Solutions for the Latham dataset with default settings can take around a few minutes to run. However, this is mostly due to the default Genetic Algorithm being significantly overtuned for well-sampled targets. This is done to have extra robustness against early local convergence as a default behavior, but in many cases, it is overkill. For example, just refitting G99-52 with a Genetic Algorithm population of 1,000 (default = 100,000) substantially lowers the runtime to around a few seconds, but will still generally return the same (within uncertainties) solution.
+Solutions for the Latham dataset with default settings can take around a few minutes to run. However, this is mostly due to the default Genetic Algorithm being significantly overtuned for well-sampled targets. This is done to have extra robustness against early local convergence as a default behavior, but in many cases, it is overkill. For example, just refitting G99-52 with a Genetic Algorithm population of 1,000 (default = 10,000) substantially lowers the runtime to around a few seconds, but will still generally return the same (within uncertainties) solution.
 
 ```./target/release/rv2b -i ./Latham_2002_171_SB1s/G99-52_rv.csv -p 1000```
 
