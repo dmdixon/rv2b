@@ -3065,7 +3065,7 @@ fn main() {
         .visible_alias("elite_frac")
         .long("genetic_algorithm_elitism_fraction")
         .default_value("0.1")
-        .help("Mutation probability of crossover child.")
+        .help("Elitism fraction for parent selection.")
     )
     .arg(
         Arg::new("levenberg_marquardt_damping_factor")
