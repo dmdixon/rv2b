@@ -1292,6 +1292,10 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
     let confidence_level: f64 = cli.get_one::<f64>("metropolis_hastings_confidence_level").unwrap().to_owned();
     let output_directory: String = cli.get_one::<String>("output_directory").unwrap().to_owned();
 
+    if chains == 0 || chain_samples == 0 {
+        return (orbit_param, score, [f64::NAN;36]);
+    }
+
     let mut best_orbit_param = orbit_param; 
     
     let mut h_array: [f64;6] = uncertainties;
