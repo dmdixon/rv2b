@@ -3052,7 +3052,7 @@ fn main() {
         .value_parser(value_parser!(f64))
         .visible_alias("sbx_di")
         .long("genetic_algorithm_sbx_distribution_index")
-        .default_value("20.0")
+        .default_value("5.0")
         .help("SBX crossover distribution index.")
     )
     .arg(
