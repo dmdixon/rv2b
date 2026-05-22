@@ -829,7 +829,7 @@ fn covariance_matrix(hessian: &DMatrix<f64>, tolerance: f64) -> (DMatrix<f64>, u
     let pmatrix = eigenvectors*norm_eigenmatrix.clone();
     let phessian = pmatrix.clone().transpose()*hessian*pmatrix.clone();
     let pcov = phessian.svd(true,true).pseudo_inverse(tolerance).unwrap();
-    let covm = 2.0*(pmatrix.clone() * pcov * pmatrix.transpose());
+    let covm = pmatrix.clone() * pcov * pmatrix.transpose();
 
     (covm, nevs)
 }
