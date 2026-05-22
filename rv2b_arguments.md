@@ -41,7 +41,7 @@
 | --genetic_algorithm_population | | -p | Number of orbital samples per Genetic Algorithm generation. | 10,000 |
 | --genetic_algorithm_minimum_generation | | -g | Minimum number of Genetic Algorithm generations. | 100 |
 | --genetic_algorithm_maximum_generation | | -G | Maximum number of Genetic Algorithm generations. | 1,000 |
-| --genetic_algorithm_sbx_distribution_index | --sbx_di  | | Distribution index for SBX crossover procedure. | 2.0 |
+| --genetic_algorithm_sbx_distribution_index | --sbx_di  | | Distribution index for SBX crossover procedure. | 5.0 |
 | --genetic_algorithm_mutation_probability | --mut_prob  | | Mutation probability of crossover child. | 0.01 | |
 | --genetic_algorithm_elitism_fraction | --elite_frac | | Elitism fraction for parent selection. | 0.1 | |
 | --levenberg_marquardt_damping_factor | --damp_fact  | | Damping factor for Levenberg-Marquardt algorithm. | 0.0001 | |
