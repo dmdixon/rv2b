@@ -215,6 +215,30 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
         }
     }
 
+    if emin < 0.0 {
+        emin = 0.0;
+    }
+
+    if emax > 0.999 {
+        emax = 0.999;
+    }
+
+    if wmin < 0.0 {
+        wmin = 0.0;
+    }
+
+    if wmax > 2.0*PI {
+        wmax = 2.0*PI;
+    }
+
+    if m0min < 0.0 {
+        m0min = 0.0;
+    }
+
+    if m0max > 2.0*PI {
+        m0max = 2.0*PI;
+    }
+
     [(pmin,pmax),(emin,emax),(wmin,wmax),(m0min,m0max)]
 }
 
@@ -3052,7 +3076,7 @@ fn main() {
         .value_parser(value_parser!(f64))
         .visible_alias("sbx_di")
         .long("genetic_algorithm_sbx_distribution_index")
-        .default_value("5.0")
+        .default_value("20.0")
         .help("SBX crossover distribution index.")
     )
     .arg(
