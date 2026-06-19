@@ -36,7 +36,7 @@ RV2B defaults were carefully chosen to minimize the need to manually set most CL
 
 This will attempt to fit the data in "./Latham_2002_171_SB1s/G99-52_rv.csv" with the default CLI arguments. By default, RV2B will output a plot depicting the model fit and save it to disk. The following image is such a plot and shows an example default fit for G99-52.
 
-![Example of a default fit for Latham target Latham target G99-52.](G99-52_rv_RMS_0.58937_P_557.97352_e_0.21564_rv2b_fit.svg)
+![Example of a default fit for Latham target Latham target G99-52.](G99-52_rv_RMS_0.60607_P_560.21693_e_0.21089_rv2b_fit.svg)
 <p align="center"><b>Example of a default fit for Latham target G99-52.</b></p> 
 
 All radial velocity data files for RV2B must be in a single character (like a comma) text-delimited file of 2 or 3 columns in order of time, radial velocity, and radial velocity error (optional), respectively. All other file formats will fail! An example of a space-delimited radial velocity data file with column names would look something like.
