@@ -1351,8 +1351,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
     let mut v0_old: f64;
 
     let mut t0_old: f64;
-    let mut asini_old: f64;
-    let mut f_m_old: f64;
+    let mut log_asini_old: f64;
+    let mut log_f_m_old: f64;
     
     let mut p_new: f64;
     let mut e_new: f64;
@@ -1362,8 +1362,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
     let mut v0_new: f64;
 
     let mut t0_new: f64;
-    let mut asini_new: f64;
-    let mut f_m_new: f64;
+    let mut log_asini_new: f64;
+    let mut log_f_m_new: f64;
 
     let mut model_rv: Array1<f64>;
 
@@ -1411,8 +1411,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
             }
 
             t0_old = p_old*m0_old/(2.0*PI);
-            asini_old = asini_coeff*(p_old*k_old)/(2.0*PI)*(1.0-e_old).sqrt() / AU_CGS;
-            f_m_old = bmf_coeff*(p_old*k_old.powf(3.0))/(2.0*PI*G_CGS)*(1.0 - e_old.powf(2.0)).powf(1.5) / MSUN_CGS;
+            log_asini_old = (asini_coeff*(p_old*k_old)/(2.0*PI)*(1.0-e_old).sqrt() / AU_CGS).log10();
+            log_f_m_old = (bmf_coeff*(p_old*k_old.powf(3.0))/(2.0*PI*G_CGS)*(1.0 - e_old.powf(2.0)).powf(1.5) / MSUN_CGS).log10();
 
             model_rv = rv_curve_model2(time, [p_old,e_old,w_old,m0_old,k_old,v0_old], tolerance, halleys_max_iter);
 
@@ -1424,7 +1424,7 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                 score = score_old;
             }
 
-            orbit_samples_vec.push([p_old, e_old, w_old, m0_old, k_old, v0_old, t0_old, asini_old, f_m_old]);
+            orbit_samples_vec.push([p_old, e_old, w_old, m0_old, k_old, v0_old, t0_old, log_asini_old, log_f_m_old]);
 
             for _ in 0..burn_in {
                 p_new = round_f64(p_old + normal_p.sample(&mut rng), decimals);
@@ -1437,8 +1437,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                     v0_new = round_f64(v0_old + normal_v0.sample(&mut rng), decimals);
 
                     t0_new = p_new*m0_new/(2.0*PI);
-                    asini_new = asini_coeff*(p_new*k_new)/(2.0*PI)*(1.0-e_new).sqrt() / AU_CGS;
-                    f_m_new = bmf_coeff*(p_new*k_new.powf(3.0))/(2.0*PI*G_CGS)*(1.0 - e_new.powf(2.0)).powf(1.5) / MSUN_CGS;
+                    log_asini_new = (asini_coeff*(p_new*k_new)/(2.0*PI)*(1.0-e_new).sqrt() / AU_CGS).log10();
+                    log_f_m_new = (bmf_coeff*(p_new*k_new.powf(3.0))/(2.0*PI*G_CGS)*(1.0 - e_new.powf(2.0)).powf(1.5) / MSUN_CGS).log10();
                 
                     model_rv = rv_curve_model2(time, [p_new,e_new,w_new,m0_new,k_new,v0_new], tolerance, halleys_max_iter);
 
@@ -1461,8 +1461,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                         v0_old = v0_new;
 
                         t0_old = t0_new;
-                        asini_old = asini_new;
-                        f_m_old = f_m_new;
+                        log_asini_old = log_asini_new;
+                        log_f_m_old = log_f_m_new;
                         
                         lnlikelihood_old = lnlikelihood_new;
                         score_old = score_new;
@@ -1480,8 +1480,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                             v0_old = v0_new;
 
                             t0_old = t0_new;
-                            asini_old = asini_new;
-                            f_m_old = f_m_new;
+                            log_asini_old = log_asini_new;
+                            log_f_m_old = log_f_m_new;
                 
                             lnlikelihood_old = lnlikelihood_new;
                             score_old = score_new;
@@ -1505,8 +1505,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                     v0_new = round_f64(v0_old + normal_v0.sample(&mut rng), decimals);
 
                     t0_new = p_new*m0_new/(2.0*PI);
-                    asini_new = asini_coeff*(p_new*k_new)/(2.0*PI)*(1.0-e_new).sqrt() / AU_CGS;
-                    f_m_new = bmf_coeff*(p_new*k_new.powf(3.0))/(2.0*PI*G_CGS)*(1.0 - e_new.powf(2.0)).powf(1.5) / MSUN_CGS;
+                    log_asini_new = (asini_coeff*(p_new*k_new)/(2.0*PI)*(1.0-e_new).sqrt() / AU_CGS).log10();
+                    log_f_m_new = (bmf_coeff*(p_new*k_new.powf(3.0))/(2.0*PI*G_CGS)*(1.0 - e_new.powf(2.0)).powf(1.5) / MSUN_CGS).log10();
                 
                     model_rv = rv_curve_model2(time, [p_new,e_new,w_new,m0_new,k_new,v0_new], tolerance, halleys_max_iter);
 
@@ -1524,8 +1524,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                         v0_old = v0_new;
 
                         t0_old = t0_new;
-                        asini_old = asini_new;
-                        f_m_old = f_m_new;
+                        log_asini_old = log_asini_new;
+                        log_f_m_old = log_f_m_new;
                         
                         lnlikelihood_old = lnlikelihood_new;
                         score_old = score_new;
@@ -1543,8 +1543,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                             v0_old = v0_new;
 
                             t0_old = t0_new;
-                            asini_old = asini_new;
-                            f_m_old = f_m_new;
+                            log_asini_old = log_asini_new;
+                            log_f_m_old = log_f_m_new;
                 
                             lnlikelihood_old = lnlikelihood_new;
                             score_old = score_new;
@@ -1552,7 +1552,7 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                     }
                 }
 
-            orbit_samples_vec.push([p_old, e_old, w_old, m0_old, k_old, v0_old, t0_old, asini_old, f_m_old]);
+            orbit_samples_vec.push([p_old, e_old, w_old, m0_old, k_old, v0_old, t0_old, log_asini_old, log_f_m_old]);
 
             }
         }
@@ -1577,8 +1577,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
             }
 
             t0_old = p_old*m0_old/(2.0*PI);
-            asini_old = asini_coeff*(p_old*k_old)/(2.0*PI)*(1.0-e_old).sqrt() / AU_CGS;
-            f_m_old = bmf_coeff*(p_old*k_old.powf(3.0))/(2.0*PI*G_CGS)*(1.0 - e_old.powf(2.0)).powf(1.5) / MSUN_CGS;
+            log_asini_old = (asini_coeff*(p_old*k_old)/(2.0*PI)*(1.0-e_old).sqrt() / AU_CGS).log10();
+            log_f_m_old = (bmf_coeff*(p_old*k_old.powf(3.0))/(2.0*PI*G_CGS)*(1.0 - e_old.powf(2.0)).powf(1.5) / MSUN_CGS).log10();
 
             model_rv = rv_curve_model2(time, [p_old,e_old,w_old,m0_old,k_old,v0_old], tolerance, halleys_max_iter);
 
@@ -1590,7 +1590,7 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                 score = score_old;
             }
 
-            orbit_samples_vec.push([p_old, e_old, w_old, m0_old, k_old, v0_old, t0_old, asini_old, f_m_old]);
+            orbit_samples_vec.push([p_old, e_old, w_old, m0_old, k_old, v0_old, t0_old, log_asini_old, log_f_m_old]);
 
             for _ in 0..burn_in {
                 p_new = round_f64(p_old + normal_p.sample(&mut rng), decimals);
@@ -1603,8 +1603,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                     v0_new = round_f64(v0_old + normal_v0.sample(&mut rng), decimals);
 
                     t0_new = p_new*m0_new/(2.0*PI);
-                    asini_new = asini_coeff*(p_new*k_new)/(2.0*PI)*(1.0-e_new).sqrt() / AU_CGS;
-                    f_m_new = bmf_coeff*(p_new*k_new.powf(3.0))/(2.0*PI*G_CGS)*(1.0 - e_new.powf(2.0)).powf(1.5) / MSUN_CGS;
+                    log_asini_new = (asini_coeff*(p_new*k_new)/(2.0*PI)*(1.0-e_new).sqrt() / AU_CGS).log10();
+                    log_f_m_new = (bmf_coeff*(p_new*k_new.powf(3.0))/(2.0*PI*G_CGS)*(1.0 - e_new.powf(2.0)).powf(1.5) / MSUN_CGS).log10();
                 
                     model_rv = rv_curve_model2(time, [p_new,e_new,w_new,m0_new,k_new,v0_new], tolerance, halleys_max_iter);
 
@@ -1627,8 +1627,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                         v0_old = v0_new;
 
                         t0_old = t0_new;
-                        asini_old = asini_new;
-                        f_m_old = f_m_new;
+                        log_asini_old = log_asini_new;
+                        log_f_m_old = log_f_m_new;
                         
                         lnlikelihood_old = lnlikelihood_new;
                     }
@@ -1645,8 +1645,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                             v0_old = v0_new;
 
                             t0_old = t0_new;
-                            asini_old = asini_new;
-                            f_m_old = f_m_new;
+                            log_asini_old = log_asini_new;
+                            log_f_m_old = log_f_m_new;
                 
                             lnlikelihood_old = lnlikelihood_new;
                         }
@@ -1665,8 +1665,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                     v0_new = round_f64(v0_old + normal_v0.sample(&mut rng), decimals);
 
                     t0_new = p_new*m0_new/(2.0*PI);
-                    asini_new = asini_coeff*(p_new*k_new)/(2.0*PI)*(1.0-e_new).sqrt() / AU_CGS;
-                    f_m_new = bmf_coeff*(p_new*k_new.powf(3.0))/(2.0*PI*G_CGS)*(1.0 - e_new.powf(2.0)).powf(1.5) / MSUN_CGS;
+                    log_asini_new = (asini_coeff*(p_new*k_new)/(2.0*PI)*(1.0-e_new).sqrt() / AU_CGS).log10();
+                    log_f_m_new = (bmf_coeff*(p_new*k_new.powf(3.0))/(2.0*PI*G_CGS)*(1.0 - e_new.powf(2.0)).powf(1.5) / MSUN_CGS).log10();
                 
                     model_rv = rv_curve_model2(time, [p_new,e_new,w_new,m0_new,k_new,v0_new], tolerance, halleys_max_iter);
 
@@ -1683,8 +1683,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                         v0_old = v0_new;
 
                         t0_old = t0_new;
-                        asini_old = asini_new;
-                        f_m_old = f_m_new;
+                        log_asini_old = log_asini_new;
+                        log_f_m_old = log_f_m_new;
                         
                         lnlikelihood_old = lnlikelihood_new;
                     }
@@ -1701,15 +1701,15 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                             v0_old = v0_new;
 
                             t0_old = t0_new;
-                            asini_old = asini_new;
-                            f_m_old = f_m_new;
+                            log_asini_old = log_asini_new;
+                            log_f_m_old = log_f_m_new;
                 
                             lnlikelihood_old = lnlikelihood_new;
                         }
                     }
                 }
 
-            orbit_samples_vec.push([p_old, e_old, w_old, m0_old, k_old, v0_old, t0_old, asini_old, f_m_old]);
+            orbit_samples_vec.push([p_old, e_old, w_old, m0_old, k_old, v0_old, t0_old, log_asini_old, log_f_m_old]);
 
             }
         }
@@ -1727,8 +1727,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
     let mut k_array: Vec<f64> = zero_vec.clone();
     let mut v0_array: Vec<f64> = zero_vec.clone();
     let mut t0_array: Vec<f64> = zero_vec.clone();
-    let mut asini_array: Vec<f64> = zero_vec.clone();
-    let mut f_m_array: Vec<f64> = zero_vec.clone();
+    let mut log_asini_array: Vec<f64> = zero_vec.clone();
+    let mut log_f_m_array: Vec<f64> = zero_vec.clone();
 
     for i in 0..n_orbit_samples {
         p_array[i] = orbit_samples_vec[i][0];
@@ -1738,8 +1738,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
         k_array[i] = orbit_samples_vec[i][4];
         v0_array[i] = orbit_samples_vec[i][5];
         t0_array[i] = orbit_samples_vec[i][6];
-        asini_array[i] = orbit_samples_vec[i][7];
-        f_m_array[i] = orbit_samples_vec[i][8];
+        log_asini_array[i] = orbit_samples_vec[i][7];
+        log_f_m_array[i] = orbit_samples_vec[i][8];
     }
     p_array.sort_by(|a, b| a.total_cmp(b));
     e_array.sort_by(|a, b| a.total_cmp(b));
@@ -1748,8 +1748,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
     k_array.sort_by(|a, b| a.total_cmp(b));
     v0_array.sort_by(|a, b| a.total_cmp(b));
     t0_array.sort_by(|a, b| a.total_cmp(b));
-    asini_array.sort_by(|a, b| a.total_cmp(b));
-    f_m_array.sort_by(|a, b| a.total_cmp(b));
+    log_asini_array.sort_by(|a, b| a.total_cmp(b));
+    log_f_m_array.sort_by(|a, b| a.total_cmp(b));
 
     let p_mean: f64 = round_f64(p_array.iter().sum::<f64>()/(p_array.len() as f64), decimals);
     let e_mean: f64 = round_f64(e_array.iter().sum::<f64>()/(e_array.len() as f64), decimals);
@@ -1758,8 +1758,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
     let k_mean: f64 = round_f64(k_array.iter().sum::<f64>()/(k_array.len() as f64), decimals);
     let v0_mean: f64 = round_f64(v0_array.iter().sum::<f64>()/(v0_array.len() as f64), decimals);
     let t0_mean: f64 = round_f64(t0_array.iter().sum::<f64>()/(t0_array.len() as f64), decimals);
-    let asini_mean: f64 = asini_array.iter().sum::<f64>()/(asini_array.len() as f64);
-    let f_m_mean: f64 = f_m_array.iter().sum::<f64>()/(f_m_array.len() as f64);
+    let log_asini_mean: f64 = log_asini_array.iter().sum::<f64>()/(log_asini_array.len() as f64);
+    let log_f_m_mean: f64 = log_f_m_array.iter().sum::<f64>()/(log_f_m_array.len() as f64);
 
     let p_std: f64 = round_f64((p_array.iter().map(|p| (p-p_mean).powf(2.0)).sum::<f64>()/(p_array.len() as f64)).sqrt(), decimals);
     let e_std: f64 = round_f64((e_array.iter().map(|e| (e-e_mean).powf(2.0)).sum::<f64>()/(e_array.len() as f64)).sqrt(), decimals);
@@ -1768,8 +1768,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
     let k_std: f64 = round_f64((k_array.iter().map(|k| (k-k_mean).powf(2.0)).sum::<f64>()/(k_array.len() as f64)).sqrt(), decimals);
     let v0_std: f64 = round_f64((v0_array.iter().map(|v0| (v0-v0_mean).powf(2.0)).sum::<f64>()/(v0_array.len() as f64)).sqrt(), decimals);
     let t0_std: f64 = round_f64((t0_array.iter().map(|t0| (t0-t0_mean).powf(2.0)).sum::<f64>()/(t0_array.len() as f64)).sqrt(), decimals);
-    let asini_std: f64 = (asini_array.iter().map(|asini| (asini-asini_mean).powf(2.0)).sum::<f64>()/(asini_array.len() as f64)).sqrt();
-    let f_m_std: f64 = (f_m_array.iter().map(|f_m| (f_m-f_m_mean).powf(2.0)).sum::<f64>()/(f_m_array.len() as f64)).sqrt();
+    let log_asini_std: f64 = (log_asini_array.iter().map(|log_asini| (log_asini-log_asini_mean).powf(2.0)).sum::<f64>()/(log_asini_array.len() as f64)).sqrt();
+    let log_f_m_std: f64 = (log_f_m_array.iter().map(|log_f_m| (log_f_m-log_f_m_mean).powf(2.0)).sum::<f64>()/(log_f_m_array.len() as f64)).sqrt();
 
     let (index_l, index_u): (usize, usize) = ((((1.0-confidence_level)/2.0*(n_orbit_samples as f64)).round() as usize), (((n_orbit_samples as f64) - ((1.0-confidence_level)/2.0*(n_orbit_samples as f64)).round()) as usize));
 
@@ -1777,8 +1777,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
     w_mean, w_std, round_f64(w_array[index_l], decimals), round_f64(w_array[index_u], decimals), m0_mean, m0_std, round_f64(m0_array[index_l], decimals), round_f64(m0_array[index_u], decimals),
     k_mean, k_std, round_f64(k_array[index_l], decimals), round_f64(k_array[index_u], decimals), v0_mean, v0_std, round_f64(v0_array[index_l], decimals), round_f64(v0_array[index_u], decimals),
     t0_mean, t0_std, round_f64(t0_array[index_l], decimals), round_f64(t0_array[index_u], decimals),
-    round_f64(asini_mean.log10(), decimals), round_f64(asini_std.log10(), decimals), round_f64(asini_array[index_l].log10(), decimals), round_f64(asini_array[index_u].log10(), decimals),
-    round_f64(f_m_mean.log10(), decimals), round_f64(f_m_std.log10(), decimals), round_f64(f_m_array[index_l].log10(), decimals), round_f64(f_m_array[index_u].log10(), decimals)])
+    round_f64(log_asini_mean, decimals), round_f64(log_asini_std, decimals), round_f64(log_asini_array[index_l], decimals), round_f64(log_asini_array[index_u], decimals),
+    round_f64(log_f_m_mean, decimals), round_f64(log_f_m_std, decimals), round_f64(log_f_m_array[index_l], decimals), round_f64(log_f_m_array[index_u], decimals)])
 }
 
 //Fuction used to write values to output files.
@@ -2558,8 +2558,8 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     let d_f_m_e = |p: f64, e: f64, k: f64| p*k.powf(3.0)/(2.0*PI*G_CGS)*1.5*(1.0 - e.powf(2.0)).sqrt()*-2.0*e;
     let d_f_m_k = |p: f64, e: f64, k: f64| 3.0*p*k.powf(2.0)/(2.0*PI*G_CGS)*(1.0 - e.powf(2.0)).powf(1.5);
 
-    let log_asini_sigf = |p: f64, e_p: f64, e: f64, e_e: f64, k: f64, e_k: f64| ((asini_coeff * ((d_asini_p(e,k)*e_p).powf(2.0) + (d_asini_e(p,e,k)*e_e).powf(2.0) + (d_asini_k(p,e)*e_k).powf(2.0)).sqrt()) / AU_CGS).log10();
-    let log_f_m_sigf = |p: f64, e_p: f64, e: f64, e_e: f64,  k: f64, e_k: f64| ((bmf_coeff * ((d_f_m_p(e,k)*e_p).powf(2.0) + (d_f_m_e(p,e,k)*e_e).powf(2.0) + (d_f_m_k(p,e,k)*e_k).powf(2.0)).sqrt()) / MSUN_CGS).log10();
+    let asini_sigf = |p: f64, e_p: f64, e: f64, e_e: f64, k: f64, e_k: f64| (asini_coeff * ((d_asini_p(e,k)*e_p).powf(2.0) + (d_asini_e(p,e,k)*e_e).powf(2.0) + (d_asini_k(p,e)*e_k).powf(2.0)).sqrt()) / AU_CGS;
+    let f_m_sigf = |p: f64, e_p: f64, e: f64, e_e: f64,  k: f64, e_k: f64| (bmf_coeff * ((d_f_m_p(e,k)*e_p).powf(2.0) + (d_f_m_e(p,e,k)*e_e).powf(2.0) + (d_f_m_k(p,e,k)*e_k).powf(2.0)).sqrt()) / MSUN_CGS;
 
     let wvector: DVector<f64> = DVector::from_row_slice(weights.as_slice().unwrap());
     let wmatrix: DMatrix<f64> = DMatrix::from_diagonal(&wvector);
@@ -2602,11 +2602,13 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     let t0: f64 = round_f64(orbit_param[0]*orbit_param[3]/(2.0*PI), decimals);
     let t0_err: f64 = round_f64(t0_sigf(orbit_param[0],uncertainties[0],orbit_param[3],uncertainties[3]), decimals);
 
-    let log_asini: f64 = round_f64((asini_coeff*(orbit_param[0]*orbit_param[4])/(2.0*PI)*(1.0-orbit_param[1]).sqrt() / AU_CGS).log10(), decimals);
-    let log_asini_err: f64 = round_f64(log_asini_sigf(orbit_param[0],uncertainties[0],orbit_param[1],uncertainties[1],orbit_param[4],uncertainties[4]), decimals);
+    let asini: f64 = asini_coeff*(orbit_param[0]*orbit_param[4])/(2.0*PI)*(1.0-orbit_param[1]).sqrt() / AU_CGS;
+    let log_asini: f64 = round_f64(asini.log10(), decimals);
+    let log_asini_err: f64 = round_f64(asini_sigf(orbit_param[0],uncertainties[0],orbit_param[1],uncertainties[1],orbit_param[4],uncertainties[4])/asini/10.0_f64.ln(), decimals);
 
-    let log_f_m: f64 = round_f64((bmf_coeff*(orbit_param[0]*orbit_param[4].powf(3.0))/(2.0*PI*G_CGS)*(1.0 - orbit_param[1].powf(2.0)).powf(1.5) / MSUN_CGS).log10(), decimals);
-    let log_f_m_err: f64 = round_f64(log_f_m_sigf(orbit_param[0],uncertainties[0],orbit_param[1],uncertainties[1],orbit_param[4],uncertainties[4]), decimals);
+    let f_m: f64 = bmf_coeff*(orbit_param[0]*orbit_param[4].powf(3.0))/(2.0*PI*G_CGS)*(1.0 - orbit_param[1].powf(2.0)).powf(1.5) / MSUN_CGS;
+    let log_f_m: f64 = round_f64(f_m.log10(), decimals);
+    let log_f_m_err: f64 = round_f64(f_m_sigf(orbit_param[0],uncertainties[0],orbit_param[1],uncertainties[1],orbit_param[4],uncertainties[4])/f_m/10.0_f64.ln(), decimals);
     
     let rv_res: Array1<f64> = rv.clone()-model_rv.clone();
 
