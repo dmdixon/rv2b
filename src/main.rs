@@ -36,16 +36,16 @@ fn round_f64(value: f64, decimals: f64) -> f64{
 }
 
 //Generalized Lomb-Scargle periodogram function. Rewrite of Astropy implementation.
-fn gls(time: &Array1<f64>,rv: &Array1<f64>, weights: &Array1<f64>, pmin: f64, pmax: f64, ls_nfreqs: usize) -> (Array1<f64>, Array1<f64>) {
-    let omega: Array1<f64>= 2.0 * PI * Array1::linspace(1.0/pmax, 1.0/pmin, ls_nfreqs);
+fn gls(time: &Array1<f64>,rv: &Array1<f64>, weights: &Array1<f64>, pmin: f64, pmax: f64, gls_nfreqs: usize) -> (Array1<f64>, Array1<f64>) {
+    let omega: Array1<f64>= 2.0 * PI * Array1::linspace(1.0/pmax, 1.0/pmin, gls_nfreqs);
 
-    let mut lsp: Array1<f64> = Array1::<f64>::zeros(ls_nfreqs);
+    let mut lsp: Array1<f64> = Array1::<f64>::zeros(gls_nfreqs);
 
     let (mut w, mut omega_t, mut sin_omega_t, mut cos_omega_t): (f64, f64, f64, f64);
     let (mut S, mut C, mut S2, mut C2, mut tau, mut Y, mut wsum, mut YY): (f64, f64, f64, f64, f64, f64, f64, f64);
     let (mut Stau, mut Ctau, mut YCtau, mut YStau, mut CCtau, mut SStau): (f64, f64, f64, f64, f64, f64);
 
-    for i in 0..ls_nfreqs {
+    for i in 0..gls_nfreqs {
         wsum = 0.0;
         S = 0.0;
         C = 0.0;
@@ -130,11 +130,13 @@ fn gls(time: &Array1<f64>,rv: &Array1<f64>, weights: &Array1<f64>, pmin: f64, pm
 
 //Function for deriving search boundaries for nonlinear parameters.
 fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
-    let tolerance = f64::EPSILON *cli.get_one::<f64>("tolerance").unwrap().to_owned();
+    let tolerance = f64::EPSILON*cli.get_one::<f64>("tolerance").unwrap().to_owned();
     let decimals: f64 = cli.get_one::<usize>("decimals").unwrap().to_owned() as f64;
     let precision: f64 = 10.0_f64.powf(-decimals - 1.0);
+    let nyquist_limit = cli.get_one::<bool>("nyquist_limit").unwrap().to_owned();
+    let baseline_limit = cli.get_one::<bool>("baseline_limit").unwrap().to_owned();
 
-    let (pmin, pmax): (f64,f64);
+    let (mut pmin, mut pmax): (f64,f64);
     let (mut emin, mut emax): (f64,f64) = (0.0, 0.999);
     let (mut wmin, mut wmax): (f64,f64) = (0.0, 2.0*PI);
     let (mut m0min, mut m0max): (f64,f64) = (0.0, 2.0*PI);
@@ -146,27 +148,42 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
 
     else {
         if cli.contains_id("min_P") {
-            pmin= cli.get_one::<f64>("min_P").unwrap().to_owned();
+            pmin=cli.get_one::<f64>("min_P").unwrap().to_owned();
+            if nyquist_limit {
+                let mut min_tgap = f64::INFINITY;
+                for i in 0..(time.len()-1) {
+                    if time[i+1] - time[i] < min_tgap && time[i+1] - time[i] > tolerance {
+                        min_tgap = time[i+1] - time[i];
+                    }
+                }
+                if 2.0*min_tgap > pmin {
+                    pmin = 2.0*min_tgap;
+                }
+            }
+            else {
+                pmin=cli.get_one::<f64>("min_P").unwrap().to_owned();
+            }
         }
-
         else {
-            let min_obs_period = cli.get_one::<f64>("minimum_observations_in_period").unwrap().to_owned();
             let mut min_tgap = f64::INFINITY;
             for i in 0..(time.len()-1) {
                 if time[i+1] - time[i] < min_tgap && time[i+1] - time[i] > tolerance {
                     min_tgap = time[i+1] - time[i];
                 }
             }
-            pmin = min_obs_period*min_tgap;
+            pmin = 2.0*min_tgap;
         }
 
         if cli.contains_id("max_P") {
             pmax = cli.get_one::<f64>("max_P").unwrap().to_owned();
+            if baseline_limit {
+                if (time[time.len()-1] - time[0]) < pmax {
+                    pmax = time[time.len()-1] - time[0];
+                }
+            }
         }
-
         else {
-            let min_n_orbits = cli.get_one::<f64>("minimum_number_of_orbits").unwrap().to_owned();
-            pmax = (time[time.len()-1] - time[0]) / min_n_orbits;
+            pmax = time[time.len()-1] - time[0];
         }
     }
 
@@ -239,7 +256,7 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
         m0max = 2.0*PI;
     }
 
-    [(pmin,pmax),(emin,emax),(wmin,wmax),(m0min,m0max)]
+    [(round_f64(pmin,decimals),round_f64(pmax,decimals)),(round_f64(emin,decimals),round_f64(emax,decimals)),(round_f64(wmin,decimals),round_f64(wmax,decimals)),(round_f64(m0min,decimals),round_f64(m0max,decimals))]
 }
 
 //Function to check and enforce parameter boundaries on array of nonlinear parameter sets.
@@ -330,8 +347,18 @@ fn roulette_selection(scores: &Array1<f64>, elite_frac: f64) -> Vec<usize> {
     let mut roulette_probs: Array1<f64> = Array1::<f64>::zeros(population);
     let mut rs: f64 = 0.0;
 
-    for n in 0..elites {
-        choice_indices[n] = sort_indices[population - n - 1];
+    let mut elite_count: usize = 0;
+    let mut elite_score: f64 = f64::INFINITY;
+
+    for n in 0..population {
+        if scores[population - n - 1] < elite_score {
+            choice_indices[elite_count] = sort_indices[population - n - 1];
+            elite_score = scores[population - n - 1];
+            elite_count += 1;
+            if elite_count == elites {
+                break
+            }
+        }
     }
 
     for n in 0..population {
@@ -344,7 +371,7 @@ fn roulette_selection(scores: &Array1<f64>, elite_frac: f64) -> Vec<usize> {
     let mut rng = rand::thread_rng();
     let mut arrow: f64;
     let mut choice: usize;
-    for n in elites..population {
+    for n in elite_count..population {
         arrow = rng.gen();
         choice = 0;
         while roulette_probs[choice] < arrow && choice < population {
@@ -352,21 +379,21 @@ fn roulette_selection(scores: &Array1<f64>, elite_frac: f64) -> Vec<usize> {
         }
         choice_indices[n] = choice;
     }
-
     choice_indices
 }
 
 //Function used to initialize first Genetic Algorithm generation. 
-fn init_pop(time: &Array1<f64> , rv: &Array1<f64>, weights: &Array1<f64>, bounds: [(f64,f64);4], population: usize, ls_min_obs: usize, name: String, export_ls: bool, cli: &ArgMatches) -> (Array1<[f64;4]>, f64, f64, f64) {
-    let ls_nfreqs = cli.get_one::<usize>("lomb_scargle_frequencies").unwrap().to_owned();
-    let ls_trust_power = cli.get_one::<f64>("lomb_scargle_trust_power").unwrap().to_owned();
-    let ls_trust_frac = cli.get_one::<f64>("lomb_scargle_trust_fraction").unwrap().to_owned();
+fn init_pop(time: &Array1<f64> , rv: &Array1<f64>, weights: &Array1<f64>, bounds: [(f64,f64);4], population: usize, gls_min_obs: usize, name: String, export_ls: bool, cli: &ArgMatches) -> (Array1<[f64;4]>, f64, f64, f64) {
+    let gls_nfreqs = cli.get_one::<usize>("generalized_lomb_scargle_frequencies").unwrap().to_owned();
+    let gls_trust_power = cli.get_one::<f64>("generalized_lomb_scargle_trust_power").unwrap().to_owned();
+    let gls_trust_log_fap = cli.get_one::<f64>("generalized_lomb_scargle_trust_log_false_alarm_probability").unwrap().to_owned();
+    let gls_trust_p_frac = cli.get_one::<f64>("generalized_lomb_scargle_trust_period_fraction").unwrap().to_owned();
     let decimals: f64 = cli.get_one::<usize>("decimals").unwrap().to_owned() as f64;
     let output_directory: String = cli.get_one::<String>("output_directory").unwrap().to_owned();
 
-    let mut ls_period: f64 = f64::NAN;
-    let mut ls_power: f64 = f64::NAN;
-    let mut ls_log_fap: f64 = f64::NAN;
+    let mut gls_period: f64 = f64::NAN;
+    let mut gls_power: f64 = f64::NAN;
+    let mut gls_log_fap: f64 = f64::NAN;
     let mut window_period: f64 = f64::NAN;
 
     let (pmin, pmax): (f64, f64) = bounds[0];
@@ -376,8 +403,8 @@ fn init_pop(time: &Array1<f64> , rv: &Array1<f64>, weights: &Array1<f64>, bounds
 
     let tlen = time.len() as f64;
 
-    if (time.len() >= ls_min_obs) & !cli.contains_id("fix_P") {
-        let (ls_freqs, ls_powers): (Array1<f64>, Array1<f64>) = gls(time,rv,weights,pmin,pmax,ls_nfreqs);
+    if (time.len() >= gls_min_obs) &&  !cli.contains_id("fix_P") {
+        let (gls_freqs, gls_powers): (Array1<f64>, Array1<f64>) = gls(time,rv,weights,pmin,pmax,gls_nfreqs);
 
         if export_ls {
             let periodogram_directory_exists: bool = Path::new((output_directory.clone() +  "/periodograms").as_str()).is_dir();
@@ -393,29 +420,29 @@ fn init_pop(time: &Array1<f64> , rv: &Array1<f64>, weights: &Array1<f64>, bounds
             let _ = output_file.write_all("frequency,power".as_bytes());
 
             let mut values: Vec<String>;
-            for n in 0..ls_freqs.len() {
-                values = vec![ls_freqs[n].to_string(), ls_powers[n].to_string()];
+            for n in 0..gls_freqs.len() {
+                values = vec![gls_freqs[n].to_string(), gls_powers[n].to_string()];
                 let _ = output_file.write_all("\n".as_bytes());
                 write(&output_file,values);
             }
         
         }
         
-        let mut indices: Vec<_> = (0..ls_powers.len()).collect();
-        indices.sort_by(|&i1, &i2| ls_powers[i1].total_cmp(&ls_powers[i2]));
+        let mut indices: Vec<_> = (0..gls_powers.len()).collect();
+        indices.sort_by(|&i1, &i2| gls_powers[i1].total_cmp(&gls_powers[i2]));
 
-        let index = indices[ls_nfreqs-1];
-        let ls_freq = ls_freqs[index];
+        let index = indices[gls_nfreqs-1];
+        let gls_freq = gls_freqs[index];
 
-        ls_period= round_f64(1.0/ls_freq, decimals);
-        ls_power = round_f64(ls_powers[index], decimals);
-        let ls_fap = 1.0 - (1.0 - (1.0 - ls_power).powf((tlen - 3.0)/2.0)) * (-ls_freq*(4.0*PI*time.var(0.0)).sqrt()*(1.0-ls_power).powf((tlen-4.0)/2.0)*ls_power.sqrt()).exp();
-        if ls_fap < f64::EPSILON {
-            ls_log_fap = 0.0;
+        gls_period= round_f64(1.0/gls_freq, decimals);
+        gls_power = round_f64(gls_powers[index], decimals);
+        let gls_fap = 1.0 - (1.0 - (1.0 - gls_power).powf((tlen - 4.0)/2.0)) * (-gls_freq*(4.0*PI*time.var(0.0)).sqrt()*(1.0-gls_power).powf((tlen-5.0)/2.0)*gls_power.sqrt()).exp();
+        if gls_fap < f64::EPSILON {
+            gls_log_fap = round_f64((f64::EPSILON).log10(),decimals);
         }
 
         else {
-            ls_log_fap = round_f64(ls_fap.log10(), decimals);
+            gls_log_fap = round_f64(gls_fap.log10(), decimals);
         }
 
         let mut a: f64;
@@ -425,7 +452,7 @@ fn init_pop(time: &Array1<f64> , rv: &Array1<f64>, weights: &Array1<f64>, bounds
 
         let mut window_power: f64 = 0.0;
 
-        for f in ls_freqs {
+        for f in gls_freqs {
             a = 0.0;
             b = 0.0;
             for t in time {
@@ -454,15 +481,15 @@ fn init_pop(time: &Array1<f64> , rv: &Array1<f64>, weights: &Array1<f64>, bounds
 
     let mut p_space_element: Array1<f64>;
     
-    if time.len() >= ls_min_obs && ls_power >= ls_trust_power {
+    if time.len() >= gls_min_obs && gls_power >= gls_trust_power && gls_log_fap <= gls_trust_log_fap && (time[time.len()-1] - time[0]) >= 1.25*gls_period {
         let mut p_space = Vec::new();
         let mut init_periods = Vec::new();
-        init_periods.push(ls_period);
-        for init_period in [ls_period, 2.0*ls_period, 3.0*ls_period, (ls_period.powf(-1.0)-window_period.powf(-1.0)).abs().powf(-1.0), (ls_period.powf(-1.0)+window_period.powf(-1.0)).abs().powf(-1.0), (ls_period.powf(-1.0)-2.0*window_period.powf(-1.0)).abs().powf(-1.0), (ls_period.powf(-1.0)+2.0*window_period.powf(-1.0)).abs().powf(-1.0)] {
+        for init_period in [gls_period, 2.0*gls_period, 3.0*gls_period, (gls_period.powf(-1.0)-window_period.powf(-1.0)).abs().powf(-1.0), (gls_period.powf(-1.0)+window_period.powf(-1.0)).abs().powf(-1.0), (gls_period.powf(-1.0)-2.0*window_period.powf(-1.0)).abs().powf(-1.0), (gls_period.powf(-1.0)+2.0*window_period.powf(-1.0)).abs().powf(-1.0), ((2.0*gls_period).powf(-1.0)-window_period.powf(-1.0)).abs().powf(-1.0), ((2.0*gls_period).powf(-1.0)+window_period.powf(-1.0)).abs().powf(-1.0), ((2.0*gls_period).powf(-1.0)-2.0*window_period.powf(-1.0)).abs().powf(-1.0), ((2.0*gls_period).powf(-1.0)+2.0*window_period.powf(-1.0)).abs().powf(-1.0)] {
             if (init_period < pmax) && (init_period > pmin) {
                 init_periods.push(init_period);
             }
         }
+
         let p_remainder: usize = population % init_periods.len(); 
         let mut p_size: usize = population/init_periods.len() + 1;
     
@@ -470,7 +497,7 @@ fn init_pop(time: &Array1<f64> , rv: &Array1<f64>, weights: &Array1<f64>, bounds
             if n == p_remainder {
                 p_size -= 1;
             }
-            p_space_element = Array1::linspace(init_periods[n] * (1.0 - ls_trust_frac), init_periods[n] * (1.0 + ls_trust_frac), p_size);
+            p_space_element = Array1::linspace(init_periods[n] * (1.0 - gls_trust_p_frac), init_periods[n] * (1.0 + gls_trust_p_frac), p_size);
             p_space.push(p_space_element);
         }
 
@@ -503,11 +530,11 @@ fn init_pop(time: &Array1<f64> , rv: &Array1<f64>, weights: &Array1<f64>, bounds
         params_array[index] = [p_array[index], e_array[index], w_array[index], m0_array[index]];
     }
 
-    (params_array, ls_period, ls_power, ls_log_fap)
+    (params_array, gls_period, gls_power, gls_log_fap)
 }
 
 //Function for converting mean anomaly to eccentric anomaly via Halley's method.
-//Smith (1979) starting seed used for optimized convergence (https://ui.adsabs.harvard.edu/abs/1979CeMec..19..163S/abstract).
+//Starting seed used for optimized convergence [Smith (1979): https://ui.adsabs.harvard.edu/abs/1979CeMec..19..163S/abstract].
 fn convert_mean_anomaly_to_eccentric_anomaly(mean_anomaly: f64, e: f64, tolerance: f64, halleys_max_iter: usize) -> f64 {
     let mut mean_anomaly_q12 = mean_anomaly;
     let qflip: bool = mean_anomaly > PI;
@@ -548,10 +575,20 @@ fn lin_params(rterms: &Array1<f64>,rv: &Array1<f64>, decimals: f64) -> [f64;2] {
     [k,v0]
 }
 
+//Function for checking if two sets of orbital parameters are equivalent.
+fn twin_params(param1: [f64;4], param2: [f64;4], decimal_precision: f64) -> bool {
+    for n in 0..4 {
+        if (param1[n] - param2[n]).abs() > decimal_precision {
+            return false;
+        }
+    }
+    true
+}
+
 //Evolution function for propogating Genetic Algorithm generations.
-//Deb & Kumar (1995) simulated binary crossover (SBX) used for global convergence of continuous parameters without encoding (https://www.complex-systems.com/abstracts/v09_i06_a01/).
-//Customized mutation schema that scales with parameter separation of parents.
-fn cross_over_mutate(params_array: &mut Array1<[f64;4]>, roulette_indices: &[usize], population:usize, sbx_distr_index: f64, mut_prob: f64, decimals: f64, bounds: [(f64,f64);4]) {
+//Self-adaptive simulated binary crossover (SBX) Genetic Algorithm used for global convergence of continuous parameters without encoding [Deb & Kumar (2007): https://www.researchgate.net/publication/220742263_Self-adaptive_simulated_binary_crossover_for_real-parameter_optimization and Deb & Kumar (1995): https://www.complex-systems.com/abstracts/v09_i06_a01/].
+//Customized mutation schema that is bounded by fill distance [R/N*(1/n)] and has 100% mutation rate for twins & near-parabolic (e > 0.9) orbits.
+fn crossover_mutate(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>, params_array: &mut Array1<[f64;4]>, roulette_indices: &[usize], scores_array: &Array1<f64>, population:usize, sbx_distr_indices: &mut Array1<f64>, min_sbx_distr_index: f64, max_sbx_distr_index: f64, sbx_self_adap_fact: f64, mut_prob: f64, tolerance: f64, decimals: f64, halleys_max_iter: usize, bounds: [(f64,f64);4]) {
     let mut rng = rand::thread_rng();
     let loop_len = population/2;
 
@@ -559,6 +596,8 @@ fn cross_over_mutate(params_array: &mut Array1<[f64;4]>, roulette_indices: &[usi
     let (emin, emax): (f64, f64) = bounds[1];
     let (wmin, wmax): (f64, f64) = bounds[2];
     let (m0min, m0max): (f64, f64) = bounds[3];
+
+    let mutation_scales: [f64;4] = [10.0_f64.powf((pmax.log10() - pmin.log10())/(population as f64).powf(0.25)), (emax - emin)/(population as f64).powf(0.25), (wmax - wmin)/(population as f64).powf(0.25), (m0max - m0min)/(population as f64).powf(0.25)];
 
     let sign: [f64;2] = [-1.0, 1.0];
 
@@ -568,6 +607,12 @@ fn cross_over_mutate(params_array: &mut Array1<[f64;4]>, roulette_indices: &[usi
     let mut param1_new: [f64;4];
     let mut param2_new: [f64;4];
 
+    let mut model_rv1: Array1<f64>;
+    let mut model_rv2: Array1<f64>;
+
+    let mut score1: f64;
+    let mut score2: f64;
+
     let mut index1: usize;
     let mut index2: usize;
 
@@ -575,10 +620,9 @@ fn cross_over_mutate(params_array: &mut Array1<[f64;4]>, roulette_indices: &[usi
     let mut p2index: usize;
 
     let mut sbx_prob: f64;
-
+    let mut sbx_distr_index_mean: f64;
     let mut beta: f64;
 
-    let mut mutation_scales: [f64;4];
     let mut scale: f64;
 
     let decimal_precision: f64 = 10.0_f64.powf(-decimals); 
@@ -592,27 +636,70 @@ fn cross_over_mutate(params_array: &mut Array1<[f64;4]>, roulette_indices: &[usi
 
         sbx_prob = rng.gen();
 
+        sbx_distr_index_mean = (sbx_distr_indices[index1] + sbx_distr_indices[index2])/2.0;
         if sbx_prob <= 0.5 {
-            beta = (2.0*sbx_prob).powf(1.0/(sbx_distr_index + 1.0));
+            beta = (2.0*sbx_prob).powf(1.0/(sbx_distr_index_mean + 1.0));
         }
 
         else {
-            beta = (0.5/(1.0-sbx_prob)).powf(1.0/(sbx_distr_index + 1.0));
+            beta = (0.5/(1.0-sbx_prob)).powf(1.0/(sbx_distr_index_mean + 1.0));
         }
 
         param1_new = [0.5 * ((1.0 + beta) * param1[0] + (1.0 - beta) * param2[0]), 0.5 * ((1.0 + beta) * param1[1] + (1.0 - beta) * param2[1]), 0.5 * ((1.0 + beta) * param1[2] + (1.0 - beta) * param2[2]), 0.5 * ((1.0 + beta) * param1[3] + (1.0 - beta) * param2[3])];
         param2_new = [0.5 * ((1.0 - beta) * param1[0] + (1.0 + beta) * param2[0]), 0.5 * ((1.0 - beta) * param1[1] + (1.0 + beta) * param2[1]), 0.5 * ((1.0 - beta) * param1[2] + (1.0 + beta) * param2[2]), 0.5 * ((1.0 - beta) * param1[3] + (1.0 + beta) * param2[3])];
         
-        if rng.gen::<f64>() < mut_prob {
-            mutation_scales = [2.0*10.0_f64.powf((pmax.log10() - pmin.log10())/(population as f64)),2.0*(emax - emin)/(population as f64),2.0*(wmax - wmin)/(population as f64),2.0*(m0max - m0min)/(population as f64)];
+        (model_rv1, _) = rv_curve_model(time, rv, param1_new, tolerance, decimals, halleys_max_iter);
+        (model_rv2, _) = rv_curve_model(time, rv, param2_new, tolerance, decimals, halleys_max_iter);
 
+        score1 = score_function(rv, &model_rv1, weights);
+        score2 = score_function(rv, &model_rv2, weights);
+
+        if score1 < scores_array[index1] && score1 < scores_array[index2] {
+            sbx_distr_indices[index1] = sbx_self_adap_fact*(sbx_distr_indices[index1] + 1.0) - 1.0;
+        }
+
+        else if score1 > scores_array[index1] && score1 > scores_array[index2] {
+            sbx_distr_indices[index1] = (sbx_distr_index_mean + 1.0)/sbx_self_adap_fact - 1.0;
+        }
+
+        if score2 < scores_array[index1] && score2 < scores_array[index2] {
+            sbx_distr_indices[index2] = sbx_self_adap_fact*(sbx_distr_index_mean + 1.0) - 1.0;
+        }
+
+        else if score2 > scores_array[index1] && score2 > scores_array[index2] {
+            sbx_distr_indices[index2] = (sbx_distr_index_mean + 1.0)/sbx_self_adap_fact - 1.0;
+        }
+
+        if sbx_distr_indices[index1] < min_sbx_distr_index {
+            sbx_distr_indices[index1] = min_sbx_distr_index;
+        }
+        else if sbx_distr_indices[index1] > max_sbx_distr_index {
+            sbx_distr_indices[index1] = max_sbx_distr_index;
+        }
+
+        if sbx_distr_indices[index2] < min_sbx_distr_index {
+            sbx_distr_indices[index2] = min_sbx_distr_index;
+        }
+        else if sbx_distr_indices[index2] > max_sbx_distr_index {
+            sbx_distr_indices[index2] = max_sbx_distr_index;
+        }
+
+        sbx_distr_index_mean = (sbx_distr_indices[index1] + sbx_distr_indices[index2])/2.0;
+        if sbx_prob <= 0.5 {
+            beta = (2.0*sbx_prob).powf(1.0/(sbx_distr_index_mean + 1.0));
+        }
+
+        else {
+            beta = (0.5/(1.0-sbx_prob)).powf(1.0/(sbx_distr_index_mean + 1.0));
+        }
+
+        param1_new = [0.5 * ((1.0 + beta) * param1[0] + (1.0 - beta) * param2[0]), 0.5 * ((1.0 + beta) * param1[1] + (1.0 - beta) * param2[1]), 0.5 * ((1.0 + beta) * param1[2] + (1.0 - beta) * param2[2]), 0.5 * ((1.0 + beta) * param1[3] + (1.0 - beta) * param2[3])];
+        param2_new = [0.5 * ((1.0 - beta) * param1[0] + (1.0 + beta) * param2[0]), 0.5 * ((1.0 - beta) * param1[1] + (1.0 + beta) * param2[1]), 0.5 * ((1.0 - beta) * param1[2] + (1.0 + beta) * param2[2]), 0.5 * ((1.0 - beta) * param1[3] + (1.0 + beta) * param2[3])];
+        
+
+        if (rng.gen::<f64>() < mut_prob) || twin_params(param1, param2, decimal_precision)  {
             p1index = rng.gen_range(0..4) as usize;
-
-            scale = (param1[p1index] - param1_new[p1index]).abs();
-            if scale < mutation_scales[p1index] {
-                scale = mutation_scales[p1index];
-            }
-
+            scale = mutation_scales[p1index];
             if scale <= decimal_precision {
                 param1_new[p1index] = round_f64(param1_new[p1index] + sign.choose(&mut rng).unwrap() * decimal_precision, decimals);
             }
@@ -623,15 +710,13 @@ fn cross_over_mutate(params_array: &mut Array1<[f64;4]>, roulette_indices: &[usi
 
         }
 
-        if rng.gen::<f64>() < mut_prob {
-            mutation_scales = [2.0*10.0_f64.powf((pmax.log10() - pmin.log10())/(population as f64)),2.0*(emax - emin)/(population as f64),2.0*(wmax - wmin)/(population as f64),2.0*(m0max - m0min)/(population as f64)];
+        if param1[1] > 0.9 {
+            param1_new[1] = round_f64(rng.gen_range(0.8..0.999), decimals);
+        }
+
+        if (rng.gen::<f64>() < mut_prob) || twin_params(param1, param2, decimal_precision) {
             p2index = rng.gen_range(0..4) as usize;
-
-            scale = (param2[p2index] - param2_new[p2index]).abs();
-            if scale < mutation_scales[p2index] {
-                scale = mutation_scales[p2index];
-            }
-
+            scale = mutation_scales[p2index];
             if scale <= decimal_precision {
                 param2_new[p2index] = round_f64(param2_new[p2index] + sign.choose(&mut rng).unwrap() * decimal_precision, decimals);
             }
@@ -640,6 +725,10 @@ fn cross_over_mutate(params_array: &mut Array1<[f64;4]>, roulette_indices: &[usi
                 param2_new[p2index] = round_f64(param2_new[p2index] + sign.choose(&mut rng).unwrap() * rng.gen_range(decimal_precision..scale), decimals);
             }
 
+        }
+
+        if param2[1] > 0.9 {
+            param2_new[1] = round_f64(rng.gen_range(0.8..0.999), decimals);
         }
 
         param1_new = [round_f64(param1_new[0], decimals), round_f64(param1_new[1], decimals), round_f64(param1_new[2], decimals), round_f64(param1_new[3], decimals)];
@@ -665,7 +754,7 @@ fn rv_curve_model(time: &Array1<f64>, rv: &Array1<f64>, sample_param: [f64;4], t
     let EA: Array1<f64> = time.map(|t| convert_mean_anomaly_to_eccentric_anomaly(2.0*PI*(t-t0)/p - 2.0*PI*((t-t0)/p).floor(),e,tolerance,halleys_max_iter));
     let nu: Array1<f64> = EA.clone() + 2.0*EA.iter().map(|Ev| (B*Ev.sin()/(1.0-B*Ev.cos())).atan()).collect::<Array1<_>>();
 
-    let rterms: Array1<f64> = if (e < tolerance) | (e > 0.1) {
+    let rterms: Array1<f64> = if (e < tolerance) || (e > 0.1) {
         nu.iter().map(|vv| (w+vv).cos() + e*w.cos()).collect::<Array1<_>>()  
     }
 
@@ -711,7 +800,7 @@ fn rv_curve_model2(time: &Array1<f64>, orbit_param: [f64;6], tolerance: f64, hal
     let EA: Array1<f64> = time.map(|t| convert_mean_anomaly_to_eccentric_anomaly(2.0*PI*(t-t0)/p - 2.0*PI*((t-t0)/p).floor(),e,tolerance,halleys_max_iter));
     let nu: Array1<f64> = EA.clone() + 2.0*EA.iter().map(|Ev| (B*Ev.sin()/(1.0-B*Ev.cos())).atan()).collect::<Array1<_>>();
 
-    let rterms: Array1<f64> = if (e < tolerance) | (e > 0.1) {
+    let rterms: Array1<f64> = if (e < tolerance) || (e > 0.1) {
         nu.iter().map(|vv| (w+vv).cos() + e*w.cos()).collect::<Array1<_>>()  
     }
     
@@ -789,7 +878,7 @@ fn jacobian(time: &Array1<f64>, orbit_param: [f64;6], tolerance: f64, halleys_ma
     let B: f64 = e/(1.0+(1.0-e.powf(2.0)).sqrt());
     let EA: Array1<f64> = time.map(|t| convert_mean_anomaly_to_eccentric_anomaly(2.0*PI*(t-t0)/p - 2.0*PI*((t-t0)/p).floor(),e,tolerance,halleys_max_iter));
     let nu: Array1<f64> = EA.clone() + 2.0*EA.iter().map(|Ev| (B*Ev.sin()/(1.0-B*Ev.cos())).atan()).collect::<Array1<_>>();
-    let z2: Array1<f64> = (B*EA.sin()/(1.0-B*EA.cos())).powf(2.0);
+    let x2: Array1<f64> = (B*EA.sin()/(1.0-B*EA.cos())).powf(2.0);
 
     let mut jcbn = DMatrix::<f64>::zeros(time.len(), 6);
 
@@ -800,12 +889,11 @@ fn jacobian(time: &Array1<f64>, orbit_param: [f64;6], tolerance: f64, halleys_ma
         let dx_dE: f64 = (B*EA[i].cos() - B.powf(2.0))/(1.0-B*EA[i].cos()).powf(2.0);
         let dx_dB: f64 = EA[i].sin()/(1.0-B*EA[i].cos()).powf(2.0);
         
-        let dnu_dE: f64 = 1.0 + 2.0 * (1.0/(1.0 + z2[i])) * dx_dE;
-        let dnu_dB: f64 = 2.0 * (1.0/(1.0 + z2[i])) * dx_dB;
+        let dnu_dE: f64 = 1.0 + 2.0 * (1.0/(1.0 + x2[i])) * dx_dE;
+        let dnu_dB: f64 = 2.0 * (1.0/(1.0 + x2[i])) * dx_dB;
     
-        
         let dE_dm: f64 = 1.0/(1.0 - e * EA[i].cos());
-        let dm_dp: f64 = -(m[i] + m0)/p;
+        let dm_dp: f64 = -(m[i] + m0)*(time[time.len()-1]-time[0])/p.powf(2.0);
         let dm_dm0: f64 = -1.0;
     
         let dnu_de: f64 = dnu_dE * dE_de + dnu_dB * dB_de;
@@ -818,8 +906,6 @@ fn jacobian(time: &Array1<f64>, orbit_param: [f64;6], tolerance: f64, halleys_ma
         let drv_dm0: f64 = -k * (w + nu[i]).sin() * dnu_dm0;
         let drv_dk: f64 = (w + nu[i]).cos() + e * w.cos();
         let drv_dv0: f64 = 1.0;
-
-
 
         jcbn[(i,0)] = drv_dp;
         jcbn[(i,1)] = drv_de;
@@ -859,15 +945,17 @@ fn covariance_matrix(hessian: &DMatrix<f64>, tolerance: f64) -> (DMatrix<f64>, u
 }
 
 //Function used for running the Genetic Algorithm.
-fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>, bounds:[(f64,f64);4], name: String, export_ls: bool, export_ga: bool, cli: &ArgMatches) -> ([f64;6],f64, usize, f64, f64, f64) {
+fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>, bounds:[(f64,f64);4], name: String, export_ls: bool, export_ga: bool, export_lm: bool, cli: &ArgMatches) -> ([f64;6],f64, usize, usize, f64, f64, f64) {
     let decimals: f64 = cli.get_one::<usize>("decimals").unwrap().to_owned() as f64;
     let tolerance = f64::EPSILON *cli.get_one::<f64>("tolerance").unwrap().to_owned();
     let halleys_max_iter = cli.get_one::<usize>("halleys_maximum_iterations").unwrap().to_owned();
-    let ls_min_obs: usize= cli.get_one::<usize>("lomb_scargle_minimum_observations").unwrap().to_owned();
+    let gls_min_obs: usize= cli.get_one::<usize>("generalized_lomb_scargle_minimum_observations").unwrap().to_owned();
     let population: usize = cli.get_one::<usize>("genetic_algorithm_population").unwrap().to_owned();
     let min_gens: usize = cli.get_one::<usize>("genetic_algorithm_minimum_generations").unwrap().to_owned();
     let mut max_gens: usize = cli.get_one::<usize>("genetic_algorithm_maximum_generations").unwrap().to_owned();
-    let sbx_distr_index = cli.get_one::<f64>("genetic_algorithm_sbx_distribution_index").unwrap().to_owned();
+    let min_sbx_distr_index = cli.get_one::<f64>("genetic_algorithm_min_sbx_distribution_index").unwrap().to_owned();
+    let max_sbx_distr_index = cli.get_one::<f64>("genetic_algorithm_max_sbx_distribution_index").unwrap().to_owned();
+    let sbx_self_adap_fact = cli.get_one::<f64>("genetic_algorithm_sbx_self_adaptive_factor").unwrap().to_owned();
     let mut_prob = cli.get_one::<f64>("genetic_algorithm_mutation_probability").unwrap().to_owned();
     let elite_frac = cli.get_one::<f64>("genetic_algorithm_elitism_fraction").unwrap().to_owned();
     let output_directory: String = cli.get_one::<String>("output_directory").unwrap().to_owned();
@@ -876,12 +964,17 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
         max_gens = min_gens;
     }
 
-    let (mut params_array, ls_period, ls_power, ls_log_fap): (Array1<[f64;4]>, f64, f64, f64) = init_pop(time, rv, weights, bounds, population, ls_min_obs, name.clone(), export_ls, cli);
-        
-    let mut score_ga: f64 = 0.0;
-    let mut orbit_param_ga: [f64;6] = [0.0;6];
-    let mut new_score_ga: f64;
-    let mut new_orbit_param_ga: [f64;6];
+    let (mut params_array, gls_period, gls_power, gls_log_fap): (Array1<[f64;4]>, f64, f64, f64) = init_pop(time, rv, weights, bounds, population, gls_min_obs, name.clone(), export_ls, cli);
+    
+    let mut sbx_distr_indices: Array1<f64> =  Array1::from_elem(population, min_sbx_distr_index);
+
+    let mut best_score: f64 = 0.0;
+    let mut best_orbit_param: [f64;6] = [0.0;6];
+    let mut new_score: f64;
+    let mut new_orbit_param: [f64;6];
+
+    let mut lm_samples: Vec<[f64;6]> = Vec::new();
+    let mut lm_scores: Vec<f64> = Vec::new();    
 
     let mut niterer: usize = 0;
 
@@ -890,6 +983,8 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
     let mut scores_array: Array1<f64>;
 
     let mut niter_ga: usize = 0;
+    let mut niter_lm: usize = 0;
+    let mut new_niter_lm: usize;
 
     if export_ga {
         let sample_directory_exists: bool = Path::new((output_directory.clone() +  "/samples").as_str()).is_dir();
@@ -901,7 +996,7 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
             let _ = create_dir((output_directory.clone() + "/samples").as_str());
         }
 
-        let mut output_file = OpenOptions::new().create(true).truncate(true).write(true).open(output_directory + "/samples/" + name.as_str() + "_ga_samples.csv").unwrap();
+        let mut output_file = OpenOptions::new().create(true).truncate(true).write(true).open(output_directory.clone() + "/samples/" + name.as_str() + "_ga_samples.csv").unwrap();
         let _ = output_file.write_all("P,e,w,M0,K,v0,score".as_bytes());
 
         let mut values: Vec<String>;
@@ -916,11 +1011,15 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
                 let _ = output_file.write_all("\n".as_bytes());
                 write(&output_file,values);
             }
-            (new_score_ga, new_orbit_param_ga) = return_best(score_ga,&scores_array,orbit_param_ga,&orbit_params);
-    
-            if new_score_ga > score_ga {
-                score_ga = new_score_ga;
-                orbit_param_ga = new_orbit_param_ga;
+            (_, new_orbit_param) = return_best(best_score,&scores_array,best_orbit_param,&orbit_params);
+            (lm_samples, lm_scores, new_niter_lm) = levenberg_marquardt(&time, &rv, &weights, new_orbit_param, bounds, cli);
+            new_score = lm_scores[lm_scores.len()-1];
+            new_orbit_param = lm_samples[lm_samples.len()-1];
+            
+            if new_score > best_score {
+                best_score = new_score;
+                best_orbit_param = new_orbit_param;
+                niter_lm = new_niter_lm;
                 niterer = 0;
             }
     
@@ -933,8 +1032,31 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
     
             if gen < max_gens {
                 let roulette_indices = roulette_selection(&scores_array,elite_frac);
-                cross_over_mutate(&mut params_array,&roulette_indices,population,sbx_distr_index,mut_prob,decimals,bounds);
+                crossover_mutate(time, rv, weights, &mut params_array, &roulette_indices, &scores_array, population, &mut sbx_distr_indices, min_sbx_distr_index, max_sbx_distr_index, sbx_self_adap_fact, mut_prob, tolerance, decimals, halleys_max_iter, bounds);
                 bounds_check(&mut params_array, bounds);
+            }
+        }
+
+
+        if export_lm {
+            let sample_directory_exists: bool = Path::new((output_directory.clone() +  "/samples").as_str()).is_dir();
+
+            if sample_directory_exists {
+
+            }
+            else {
+                let _ = create_dir((output_directory.clone() + "/samples").as_str());
+            }
+
+            let mut output_file = OpenOptions::new().create(true).truncate(true).write(true).open(output_directory + "/samples/" + name.as_str() + "_lm_samples.csv").unwrap();
+            let _ = output_file.write_all("P,e,w,M0,K,v0,score".as_bytes());
+
+            let mut values: Vec<String>;
+
+            for n in 0..(niter_lm+1) {
+                values = vec![lm_samples[n][0].to_string(),lm_samples[n][1].to_string(),lm_samples[n][2].to_string(),lm_samples[n][3].to_string(),lm_samples[n][4].to_string(),lm_samples[n][5].to_string(),lm_scores[n].to_string()];
+                let _ = output_file.write_all("\n".as_bytes());
+                write(&output_file,values);
             }
         }
     }
@@ -945,11 +1067,15 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
 
             (model_rvs,orbit_params)  = rv_matrix(time, rv, &params_array, tolerance, decimals, halleys_max_iter);
             scores_array = score_matrix(rv,&model_rvs,weights);
-            (new_score_ga, new_orbit_param_ga) = return_best(score_ga,&scores_array,orbit_param_ga,&orbit_params);
-
-            if new_score_ga > score_ga {
-                score_ga = new_score_ga;
-                orbit_param_ga = new_orbit_param_ga;
+            (_, new_orbit_param) = return_best(best_score,&scores_array,best_orbit_param,&orbit_params);
+            (lm_samples, lm_scores, new_niter_lm) = levenberg_marquardt(&time, &rv, &weights, new_orbit_param, bounds, cli);
+            new_score = lm_scores[lm_scores.len()-1];
+            new_orbit_param = lm_samples[lm_samples.len()-1];
+            
+            if new_score > best_score {
+                best_score = new_score;
+                best_orbit_param = new_orbit_param;
+                niter_lm = new_niter_lm;
                 niterer = 0;
             }
 
@@ -962,31 +1088,60 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
 
             if gen < max_gens {
                 let roulette_indices = roulette_selection(&scores_array,elite_frac);
-                cross_over_mutate(&mut params_array,&roulette_indices,population,sbx_distr_index,mut_prob,decimals,bounds);
+                crossover_mutate(time, rv, weights, &mut params_array, &roulette_indices, &scores_array, population, &mut sbx_distr_indices, min_sbx_distr_index, max_sbx_distr_index, sbx_self_adap_fact, mut_prob, tolerance, decimals, halleys_max_iter, bounds);
                 bounds_check(&mut params_array, bounds);
+            }
+        }
+
+        if export_lm {
+            let sample_directory_exists: bool = Path::new((output_directory.clone() +  "/samples").as_str()).is_dir();
+
+            if sample_directory_exists {
+
+            }
+            else {
+                let _ = create_dir((output_directory.clone() + "/samples").as_str());
+            }
+
+            let mut output_file = OpenOptions::new().create(true).truncate(true).write(true).open(output_directory + "/samples/" + name.as_str() + "_lm_samples.csv").unwrap();
+            let _ = output_file.write_all("P,e,w,M0,K,v0,score".as_bytes());
+
+            let mut values: Vec<String>;
+
+            for n in 0..(niter_lm + 1) {
+                values = vec![lm_samples[n][0].to_string(),lm_samples[n][1].to_string(),lm_samples[n][2].to_string(),lm_samples[n][3].to_string(),lm_samples[n][4].to_string(),lm_samples[n][5].to_string(),lm_scores[n].to_string()];
+                let _ = output_file.write_all("\n".as_bytes());
+                write(&output_file,values);
             }
         }
     }
 
-    (orbit_param_ga, score_ga, niter_ga, ls_period, ls_power, ls_log_fap)
+    (best_orbit_param, best_score, niter_ga, niter_lm, gls_period, gls_power, gls_log_fap)
 }
 
 //Function used for running the Levenberg-Marquardt algorithm.
-fn levenberg_marquardt(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>, start_model_rv: &Array1<f64>, start_orbit_param: [f64;6], bounds: [(f64,f64);4], name: String, export: bool, cli: &ArgMatches) -> ([f64;6],f64, usize) {
+fn levenberg_marquardt(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>, start_orbit_param: [f64;6], bounds: [(f64,f64);4], cli: &ArgMatches) -> (Vec<[f64;6]>, Vec<f64>, usize) {
     let decimals: f64 = cli.get_one::<usize>("decimals").unwrap().to_owned() as f64;
     let tolerance = f64::EPSILON *cli.get_one::<f64>("tolerance").unwrap().to_owned();
     let halleys_max_iter = cli.get_one::<usize>("halleys_maximum_iterations").unwrap().to_owned();
     let mut lambda = cli.get_one::<f64>("levenberg_marquardt_damping_factor").unwrap().to_owned();
     let lm_max_iter = cli.get_one::<usize>("levenberg_marquardt_maximum_iterations").unwrap().to_owned();
-    let output_directory: String = cli.get_one::<String>("output_directory").unwrap().to_owned();
 
-    let mut resv: DVector<f64> = DVector::from_row_slice((start_model_rv-rv).as_slice().unwrap());
+    let mut lm_samples: Vec<[f64;6]> = Vec::new();
+    lm_samples.push(start_orbit_param);
+
+    let start_model_rv: Array1<f64> = rv_curve_model2(time, start_orbit_param, tolerance, halleys_max_iter);
+
+    let mut resv: DVector<f64> = DVector::from_row_slice((start_model_rv.clone()-rv).as_slice().unwrap());
     let mut parv: DVector<f64> = DVector::from_row_slice(&start_orbit_param);
     
+    let mut lm_scores: Vec<f64> = Vec::new();
+    let mut score: f64 = score_function(rv,&start_model_rv, weights);
+    lm_scores.push(score);
+    
     let mut orbit_param: [f64;6] = start_orbit_param;
-    let mut score: f64 = score_function(rv,start_model_rv, weights);
-        
     let mut new_orbit_param: [f64;6] = start_orbit_param;
+    
     let mut new_model_rv: Array1<f64>;    
     let mut new_score: f64;
 
@@ -1001,124 +1156,73 @@ fn levenberg_marquardt(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
 
     let mut niter_lm: usize = 0;
 
-    if export {
-        let sample_directory_exists: bool = Path::new((output_directory.clone() +  "/samples").as_str()).is_dir();
+    'marquardt_loop: for _ in 0..lm_max_iter {
+        let step = (hess.clone() + lambda*DMatrix::identity(6, 6)).svd(true,true).pseudo_inverse(tolerance).unwrap() * jcbn.transpose() * wmatrix.clone() * resv.clone();
 
-        if sample_directory_exists {
+        new_orbit_param[0] = parv[0] - step[0];
+        new_orbit_param[1] = parv[1] - step[1];
+        new_orbit_param[2] = parv[2] - step[2];
+        new_orbit_param[3] = parv[3] - step[3];
+        new_orbit_param[4] = parv[4] - step[4];
+        new_orbit_param[5] = parv[5] - step[5];
+
+        new_orbit_param[0] = round_f64(new_orbit_param[0], decimals);
+        new_orbit_param[1] = round_f64(new_orbit_param[1], decimals);
+        new_orbit_param[2] = round_f64(new_orbit_param[2], decimals);
+        new_orbit_param[3] = round_f64(new_orbit_param[3], decimals);
+        new_orbit_param[4] = round_f64(new_orbit_param[4], decimals);
+        new_orbit_param[5] = round_f64(new_orbit_param[5], decimals);
+
+        if (new_orbit_param[0] - orbit_param[0]).abs() < 10.0_f64.powf(-decimals) && (new_orbit_param[1] - orbit_param[1]).abs() < 10.0_f64.powf(-decimals) && (new_orbit_param[2] - orbit_param[2]).abs() < 10.0_f64.powf(-decimals) && (new_orbit_param[3] - orbit_param[3]).abs() < 10.0_f64.powf(-decimals) && (new_orbit_param[4] - orbit_param[4]).abs() < 10.0_f64.powf(-decimals) && (new_orbit_param[5] - orbit_param[5]).abs() < 10.0_f64.powf(-decimals) {
+            break 'marquardt_loop
+        }
+
+        new_model_rv = rv_curve_model2(time, new_orbit_param, tolerance, halleys_max_iter);
+        new_score = score_function(rv,&new_model_rv, weights);
+
+        if (new_score > score) &&  bounds_check_bool([new_orbit_param[0],new_orbit_param[1],new_orbit_param[2],new_orbit_param[3]],bounds) {
+            lambda/=2.0;
+            resv = DVector::from_row_slice((new_model_rv.clone()-rv).as_slice().unwrap());
+            parv -= step;
+            orbit_param = new_orbit_param;
+            score = new_score;
+
+            lm_samples.push(orbit_param);
+            lm_scores.push(score);
+            
+            jcbn = jacobian(time, orbit_param, tolerance, halleys_max_iter);
+            hess = jcbn.transpose() * wmatrix.clone() * jcbn.clone();
+
+            niter_lm+=1;
 
         }
         else {
-            let _ = create_dir((output_directory.clone() + "/samples").as_str());
-        }
-
-        let mut output_file = OpenOptions::new().create(true).truncate(true).write(true).open(output_directory + "/samples/" + name.as_str() + "_lm_samples.csv").unwrap();
-        let _ = output_file.write_all("P,e,w,M0,K,v0,score".as_bytes());
-        
-        let mut values: Vec<String> = vec![orbit_param[0].to_string(),orbit_param[1].to_string(),orbit_param[2].to_string(),orbit_param[3].to_string(),orbit_param[4].to_string(),orbit_param[5].to_string(),score.to_string()];
-        let _ = output_file.write_all("\n".as_bytes());
-        write(&output_file,values);
-
-        'marquardt_loop: for _ in 0..lm_max_iter {
-            niter_lm+=1;
-            let step = (hess.clone() + lambda*DMatrix::identity(6, 6)).svd(true,true).pseudo_inverse(tolerance).unwrap() * jcbn.transpose() * wmatrix.clone() * resv.clone();
-    
-            new_orbit_param[0] = parv[0] - step[0];
-            new_orbit_param[1] = parv[1] - step[1];
-            new_orbit_param[2] = parv[2] - step[2];
-            new_orbit_param[3] = parv[3] - step[3];
-            new_orbit_param[4] = parv[4] - step[4];
-            new_orbit_param[5] = parv[5] - step[5];
-    
-            new_orbit_param[0] = round_f64(new_orbit_param[0], decimals);
-            new_orbit_param[1] = round_f64(new_orbit_param[1], decimals);
-            new_orbit_param[2] = round_f64(new_orbit_param[2], decimals);
-            new_orbit_param[3] = round_f64(new_orbit_param[3], decimals);
-            new_orbit_param[4] = round_f64(new_orbit_param[4], decimals);
-            new_orbit_param[5] = round_f64(new_orbit_param[5], decimals);
-    
-            if (new_orbit_param[0] - orbit_param[0]).abs() < 10.0_f64.powf(-decimals) && (new_orbit_param[1] - orbit_param[1]).abs() < 10.0_f64.powf(-decimals) && (new_orbit_param[2] - orbit_param[2]).abs() < 10.0_f64.powf(-decimals) && (new_orbit_param[3] - orbit_param[3]).abs() < 10.0_f64.powf(-decimals) && (new_orbit_param[4] - orbit_param[4]).abs() < 10.0_f64.powf(-decimals) && (new_orbit_param[5] - orbit_param[5]).abs() < 10.0_f64.powf(-decimals) {
-                break 'marquardt_loop
-            }
-    
-            new_model_rv = rv_curve_model2(time, new_orbit_param, tolerance, halleys_max_iter);
-            new_score = score_function(rv,&new_model_rv, weights);
-    
-            if (new_score > score) & bounds_check_bool([new_orbit_param[0],new_orbit_param[1],new_orbit_param[2],new_orbit_param[3]],bounds) {
-                lambda/=2.0;
-                resv = DVector::from_row_slice((new_model_rv.clone()-rv).as_slice().unwrap());
-                parv -= step;
-                orbit_param = new_orbit_param;
-                score = new_score;
-
-                values = vec![orbit_param[0].to_string(),orbit_param[1].to_string(),orbit_param[2].to_string(),orbit_param[3].to_string(),orbit_param[4].to_string(),orbit_param[5].to_string(),score.to_string()];
-                let _ = output_file.write_all("\n".as_bytes());
-                write(&output_file,values);
-                
-                jcbn = jacobian(time, orbit_param, tolerance, halleys_max_iter);
-                hess = jcbn.transpose() * wmatrix.clone() * jcbn.clone();
-            }
-            else {
-                lambda*=3.0;
-            }
-        }
-
-    }
-
-    else {
-        'marquardt_loop: for _ in 0..lm_max_iter {
-            niter_lm+=1;
-            let step = (hess.clone() + lambda*DMatrix::identity(6, 6)).svd(true,true).pseudo_inverse(tolerance).unwrap() * jcbn.transpose() * wmatrix.clone() * resv.clone();
-
-            new_orbit_param[0] = parv[0] - step[0];
-            new_orbit_param[1] = parv[1] - step[1];
-            new_orbit_param[2] = parv[2] - step[2];
-            new_orbit_param[3] = parv[3] - step[3];
-            new_orbit_param[4] = parv[4] - step[4];
-            new_orbit_param[5] = parv[5] - step[5];
-
-            new_orbit_param[0] = round_f64(new_orbit_param[0], decimals);
-            new_orbit_param[1] = round_f64(new_orbit_param[1], decimals);
-            new_orbit_param[2] = round_f64(new_orbit_param[2], decimals);
-            new_orbit_param[3] = round_f64(new_orbit_param[3], decimals);
-            new_orbit_param[4] = round_f64(new_orbit_param[4], decimals);
-            new_orbit_param[5] = round_f64(new_orbit_param[5], decimals);
-
-            if (new_orbit_param[0] - orbit_param[0]).abs() < 10.0_f64.powf(-decimals) && (new_orbit_param[1] - orbit_param[1]).abs() < 10.0_f64.powf(-decimals) && (new_orbit_param[2] - orbit_param[2]).abs() < 10.0_f64.powf(-decimals) && (new_orbit_param[3] - orbit_param[3]).abs() < 10.0_f64.powf(-decimals) && (new_orbit_param[4] - orbit_param[4]).abs() < 10.0_f64.powf(-decimals) && (new_orbit_param[5] - orbit_param[5]).abs() < 10.0_f64.powf(-decimals) {
-                break 'marquardt_loop
-            }
-
-            new_model_rv = rv_curve_model2(time, new_orbit_param, tolerance, halleys_max_iter);
-            new_score = score_function(rv,&new_model_rv, weights);
-
-            if (new_score > score) & bounds_check_bool([new_orbit_param[0],new_orbit_param[1],new_orbit_param[2],new_orbit_param[3]],bounds) {
-                lambda/=2.0;
-                resv = DVector::from_row_slice((new_model_rv.clone()-rv).as_slice().unwrap());
-                parv -= step;
-                orbit_param = new_orbit_param;
-                score = new_score;
-                
-                jcbn = jacobian(time, orbit_param, tolerance, halleys_max_iter);
-                hess = jcbn.transpose() * wmatrix.clone() * jcbn.clone();
-            }
-            else {
-                lambda*=3.0;
-            }
+            lambda*=3.0;
         }
     }
-
-    (orbit_param, score, niter_lm)
+    
+    (lm_samples, lm_scores, niter_lm)
 }
 
 //Function used for running the Hooke-Jeeves algorithm.
-fn hooke_jeeves(time: &Array1<f64>,rv: &Array1<f64>, weights: &Array1<f64>, orbit_param: [f64;6], h_array: [f64;6], bounds: [(f64,f64);4], name: String, export: bool, cli: &ArgMatches) -> ([f64;6], f64, usize) {
+fn hooke_jeeves(time: &Array1<f64>,rv: &Array1<f64>, weights: &Array1<f64>, orbit_param: [f64;6], bounds: [(f64,f64);4], name: String, export: bool, cli: &ArgMatches) -> ([f64;6], f64, usize) {
+    let population: usize = cli.get_one::<usize>("genetic_algorithm_population").unwrap().to_owned();
     let decimals: f64 = cli.get_one::<usize>("decimals").unwrap().to_owned() as f64;
     let tolerance = f64::EPSILON *cli.get_one::<f64>("tolerance").unwrap().to_owned();
     let halleys_max_iter = cli.get_one::<usize>("halleys_maximum_iterations").unwrap().to_owned();
     let hj_max_iter = cli.get_one::<usize>("hooke_jeeves_maximum_iterations").unwrap().to_owned();
+    
     let hj_shrink_fraction = cli.get_one::<f64>("hooke_jeeves_shrink_fraction").unwrap().to_owned();
+    
     let output_directory: String = cli.get_one::<String>("output_directory").unwrap().to_owned();
 
-    let mut h_array: [f64;6] = h_array;
+    let (pmin, pmax): (f64, f64) = bounds[0];
+    let (emin, emax): (f64, f64) = bounds[1];
+    let (wmin, wmax): (f64, f64) = bounds[2];
+    let (m0min, m0max): (f64, f64) = bounds[3];
+
+    let mut h_array: [f64;6] = [10.0_f64.powf((pmax.log10() - pmin.log10())/(population as f64).powf(0.25)), (emax - emin)/(population as f64).powf(0.25), (wmax - wmin)/(population as f64).powf(0.25), (m0max - m0min)/(population as f64).powf(0.25),0.1*orbit_param[4].abs() + 10.0_f64.powf(-decimals).sqrt(), 0.1*orbit_param[5].abs() + 10.0_f64.powf(-decimals).sqrt()];
+
     let model_rv: Array1<f64> = rv_curve_model2(time, orbit_param, tolerance, halleys_max_iter);
     let mut score = score_function(rv,&model_rv,weights);
 
@@ -1322,21 +1426,21 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
 
     let mut best_orbit_param = orbit_param; 
     
-    let mut h_array: [f64;6] = uncertainties;
-    let h_lbound: f64 = 10.0_f64.powf(-decimals);
-    let h_ubounds: [f64;6] = [orbit_param[0],1.0,2.0*PI,2.0*PI,orbit_param[4]+orbit_param[5].abs(),orbit_param[4]+orbit_param[5].abs()];
-    for n in 0..h_array.len() {
-        if (uncertainties[n] < h_lbound) | (uncertainties[n] > h_ubounds[n]) | h_array[n].is_nan() {
-            h_array[n] = 0.1*orbit_param[n].abs() + 10.0_f64.powf(-decimals).sqrt();
+    let mut u_array: [f64;6] = uncertainties;
+    let u_lbound: f64 = 10.0_f64.powf(-decimals);
+    let u_ubounds: [f64;6] = [orbit_param[0],1.0,2.0*PI,2.0*PI,orbit_param[4]+orbit_param[5].abs(),orbit_param[4]+orbit_param[5].abs()];
+    for n in 0..u_array.len() {
+        if (uncertainties[n] < u_lbound) || (uncertainties[n] > u_ubounds[n]) || u_array[n].is_nan() {
+            u_array[n] = 0.1*orbit_param[n].abs() + 10.0_f64.powf(-decimals).sqrt();
         }
     }
 
-    let normal_p = Normal::new(0.0, h_array[0]).unwrap();
-    let normal_e = Normal::new(0.0, h_array[1]).unwrap();
-    let normal_w = Normal::new(0.0, h_array[2]).unwrap();
-    let normal_m0 = Normal::new(0.0, h_array[3]).unwrap();
-    let normal_k = Normal::new(0.0, h_array[4]).unwrap();
-    let normal_v0 = Normal::new(0.0, h_array[5]).unwrap();
+    let normal_p = Normal::new(0.0, u_array[0]).unwrap();
+    let normal_e = Normal::new(0.0, u_array[1]).unwrap();
+    let normal_w = Normal::new(0.0, u_array[2]).unwrap();
+    let normal_m0 = Normal::new(0.0, u_array[3]).unwrap();
+    let normal_k = Normal::new(0.0, u_array[4]).unwrap();
+    let normal_v0 = Normal::new(0.0, u_array[5]).unwrap();
 
     let mut score: f64 = score;
 
@@ -1401,7 +1505,7 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
             k_old = orbit_param[4] + normal_k.sample(&mut rng);
             v0_old = orbit_param[5] + normal_v0.sample(&mut rng);
 
-            if (!bounds_check_bool([p_old, e_old, w_old, m0_old], bounds)) | (k_old < 0.0) {
+            if (!bounds_check_bool([p_old, e_old, w_old, m0_old], bounds)) || (k_old < 0.0) {
                 p_old = orbit_param[0];
                 e_old = orbit_param[1];
                 w_old = orbit_param[2];
@@ -1433,7 +1537,7 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                 m0_new = round_f64(m0_old + normal_m0.sample(&mut rng), decimals);
                 k_new = round_f64(k_old + normal_k.sample(&mut rng), decimals);
 
-                if (bounds_check_bool([p_new, e_new, w_new, m0_new], bounds)) & (k_new > 0.0) {
+                if (bounds_check_bool([p_new, e_new, w_new, m0_new], bounds)) &&  (k_new > 0.0) {
                     v0_new = round_f64(v0_old + normal_v0.sample(&mut rng), decimals);
 
                     t0_new = p_new*m0_new/(2.0*PI);
@@ -1501,7 +1605,7 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                 m0_new = round_f64(m0_old + normal_m0.sample(&mut rng), decimals);
                 k_new = round_f64(k_old + normal_k.sample(&mut rng), decimals);
 
-                if (bounds_check_bool([p_new, e_new, w_new, m0_new], bounds)) & (k_new > 0.0) {
+                if (bounds_check_bool([p_new, e_new, w_new, m0_new], bounds)) &&  (k_new > 0.0) {
                     v0_new = round_f64(v0_old + normal_v0.sample(&mut rng), decimals);
 
                     t0_new = p_new*m0_new/(2.0*PI);
@@ -1567,7 +1671,7 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
             k_old = orbit_param[4] + normal_k.sample(&mut rng);
             v0_old = orbit_param[5] + normal_v0.sample(&mut rng);
 
-            if (!bounds_check_bool([p_old, e_old, w_old, m0_old], bounds)) | (k_old < 0.0) {
+            if (!bounds_check_bool([p_old, e_old, w_old, m0_old], bounds)) || (k_old < 0.0) {
                 p_old = orbit_param[0];
                 e_old = orbit_param[1];
                 w_old = orbit_param[2];
@@ -1599,7 +1703,7 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                 m0_new = round_f64(m0_old + normal_m0.sample(&mut rng), decimals);
                 k_new = round_f64(k_old + normal_k.sample(&mut rng), decimals);
 
-                if (bounds_check_bool([p_new, e_new, w_new, m0_new], bounds)) & (k_new > 0.0) {
+                if (bounds_check_bool([p_new, e_new, w_new, m0_new], bounds)) &&  (k_new > 0.0) {
                     v0_new = round_f64(v0_old + normal_v0.sample(&mut rng), decimals);
 
                     t0_new = p_new*m0_new/(2.0*PI);
@@ -1661,7 +1765,7 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
                 m0_new = round_f64(m0_old + normal_m0.sample(&mut rng), decimals);
                 k_new = round_f64(k_old + normal_k.sample(&mut rng), decimals);
 
-                if (bounds_check_bool([p_new, e_new, w_new, m0_new], bounds)) & (k_new > 0.0) {
+                if (bounds_check_bool([p_new, e_new, w_new, m0_new], bounds)) &&  (k_new > 0.0) {
                     v0_new = round_f64(v0_old + normal_v0.sample(&mut rng), decimals);
 
                     t0_new = p_new*m0_new/(2.0*PI);
@@ -2441,7 +2545,8 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     let halleys_max_iter: usize = cli.get_one::<usize>("halleys_maximum_iterations").unwrap().to_owned();
     let rv_err_weights: bool = cli.get_one::<bool>("radial_velocity_error_weights").unwrap().to_owned();
     let population: usize = cli.get_one::<usize>("genetic_algorithm_population").unwrap().to_owned();
-    let ls_trust_power: f64 = cli.get_one::<f64>("lomb_scargle_trust_power").unwrap().to_owned();
+    let gls_trust_power: f64 = cli.get_one::<f64>("generalized_lomb_scargle_trust_power").unwrap().to_owned();
+    let gls_trust_log_fap = cli.get_one::<f64>("generalized_lomb_scargle_trust_log_false_alarm_probability").unwrap().to_owned();
     let time_unit: String = cli.get_one::<String>("time_unit").unwrap().to_owned();
     let rv_unit: String = cli.get_one::<String>("radial_velocity_unit").unwrap().to_owned();
     let chains: usize = cli.get_one::<usize>("metropolis_hastings_chains").unwrap().to_owned();
@@ -2508,7 +2613,7 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     }
 
     let mut weights: Array1<f64> = rv_err.powf(-2.0);
-    if  !rv_err_weights & (ncols > 2) {
+    if  !rv_err_weights &&  (ncols > 2) {
         weights = Array1::<f64>::ones(rv.len());
     }
 
@@ -2564,27 +2669,9 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     let wvector: DVector<f64> = DVector::from_row_slice(weights.as_slice().unwrap());
     let wmatrix: DMatrix<f64> = DMatrix::from_diagonal(&wvector);
 
-    let (orbit_param_ga, _, niter_ga, ls_period, ls_power, ls_log_fap): ([f64;6],f64, usize, f64, f64, f64) = genetic_algorithm(&time, &rv, &weights, bounds, name.clone(), export_ls, export_ga, cli);
-    let model_rv_ga: Array1<f64> = rv_curve_model2(&time, orbit_param_ga, tolerance, halleys_max_iter);
+    let (orbit_param_ga, _, niter_ga, niter_lm, gls_period, gls_power, gls_log_fap): ([f64;6],f64, usize, usize, f64, f64, f64) = genetic_algorithm(&time, &rv, &weights, bounds, name.clone(), export_ls, export_ga, export_lm, cli);
 
-    let (orbit_param_lm, _, niter_lm): ([f64;6],f64, usize) = levenberg_marquardt(&time, &rv, &weights, &model_rv_ga, orbit_param_ga, bounds, name.clone(), export_lm, cli);
-
-    let jcbn_lm: DMatrix<f64> = jacobian(&time, orbit_param_lm, tolerance, halleys_max_iter);
-    let hess_lm = jcbn_lm.transpose() * wmatrix.clone() * jcbn_lm.clone();
-    let (cov_lm, _): (DMatrix<f64>, usize) = covariance_matrix(&hess_lm, tolerance);
-    let uncertainties_lm: [f64;6] = [round_f64(cov_lm[(0,0)].sqrt(), decimals),round_f64(cov_lm[(1,1)].sqrt(), decimals),round_f64(cov_lm[(2,2)].sqrt(), decimals),round_f64(cov_lm[(3,3)].sqrt(), decimals),round_f64(cov_lm[(4,4)].sqrt(), decimals),round_f64(cov_lm[(5,5)].sqrt(), decimals)];
-    
-    let mut h_array: [f64;6] = uncertainties_lm;
-    let h_lbound: f64 = 10.0_f64.powf(-decimals);
-    let h_ubounds: [f64;6] = [orbit_param_lm[0],1.0,2.0*PI,2.0*PI,orbit_param_lm[4]+orbit_param_lm[5].abs(),orbit_param_lm[4]+orbit_param_lm[5].abs()];
-    for n in 0..h_array.len() {
-        if (uncertainties_lm[n] < h_lbound) | (uncertainties_lm[n] > h_ubounds[n]) | h_array[n].is_nan() {
-            h_array[n] = 0.1*orbit_param_lm[n].abs() + 10.0_f64.powf(-decimals).sqrt();
-        }
-    }
-    
-    let (orbit_param_hj, score_hj, niter_hj): ([f64;6], f64, usize) = hooke_jeeves(&time, &rv, &weights, orbit_param_lm, h_array, bounds, name.clone(), export_hj, cli);
-
+    let (orbit_param_hj, score_hj, niter_hj): ([f64;6], f64, usize) = hooke_jeeves(&time, &rv, &weights, orbit_param_ga, bounds, name.clone(), export_hj, cli);
     let jcbn_hj: DMatrix<f64> = jacobian(&time, orbit_param_hj, tolerance, halleys_max_iter);
     let hess_hj = jcbn_hj.transpose() * wmatrix.clone() * jcbn_hj.clone();
     let (cov_hj, _): (DMatrix<f64>, usize) = covariance_matrix(&hess_hj, tolerance);
@@ -2639,7 +2726,7 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     let rss: f64 = (rv_res.clone()).powf(2.0).sum();
     let rms: f64 = round_f64((rss/(rv.len() as f64)).sqrt(), decimals);
     let skew: f64 = round_f64(3.0 * (rv_res_mean - rv_res_med)/rms, decimals);
-    let log_kos: f64 = round_f64((orbit_param_lm[4]/rms).log10(), decimals);
+    let log_kos: f64 = round_f64((orbit_param[4]/rms).log10(), decimals);
     let mut rms_dof: f64 = f64::NAN;
     let mut skew_dof: f64 = f64::NAN;
     let mut log_kos_dof: f64 = f64::NAN;
@@ -2717,9 +2804,9 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     result.insert(String::from("runtime"), runtime.to_string());
     result.insert(String::from("nobs"), nobs.to_string());
     result.insert(String::from("dof"), dof.to_string());
-    result.insert(String::from("ls_period"), ls_period.to_string());
-    result.insert(String::from("ls_power"), ls_power.to_string());
-    result.insert(String::from("ls_log_fap"), ls_log_fap.to_string());
+    result.insert(String::from("gls_period"), gls_period.to_string());
+    result.insert(String::from("gls_power"), gls_power.to_string());
+    result.insert(String::from("gls_log_fap"), gls_log_fap.to_string());
     result.insert(String::from("population"), population.to_string());
     result.insert(String::from("niter_ga"), niter_ga.to_string());
     result.insert(String::from("niter_lm"), niter_lm.to_string());
@@ -2800,7 +2887,7 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     result.insert(String::from("sw_logp"), sw_logp.to_string());
 
     if export_p {
-        let gls: bool = ls_power >= ls_trust_power;
+        let gls: bool = (gls_power >= gls_trust_power) && (gls_log_fap <= gls_trust_log_fap) && ((time[time.len()-1] - time[0]) >= 1.25*gls_period);
         plot_rv_curve(&time, &rv, &rv_err, &rv_res, &result, rundate_string, has_errors, gls, cli);
     }
 
@@ -2906,20 +2993,20 @@ fn main() {
         .help("Use radial velocity errors for score weighting.")
     )
     .arg(
-        Arg::new("minimum_observations_in_period")
-        .value_parser(value_parser!(f64))
-        .visible_alias("min_obs_per")
-        .long("minimum_observations_in_period")
-        .default_value("2.0")
-        .help("Minimum number of observations that must occur within an orbital period.")
+        Arg::new("nyquist_limit")
+        .value_parser(value_parser!(bool))
+        .visible_alias("nyq_lim")
+        .long("nyquist_limit")
+        .default_value("true")
+        .help("Limit minimum orbital period by pseudo-Nyquist limit.")
     )
     .arg(
-        Arg::new("minimum_number_of_orbits")
-        .value_parser(value_parser!(f64))
-        .visible_alias("min_num_orb")
-        .long("minimum_number_of_orbits")
-        .default_value("1.0")
-        .help("Minimum number of orbits that must fit in observational baseline.")
+        Arg::new("baseline_limit")
+        .value_parser(value_parser!(bool))
+        .visible_alias("base_lim")
+        .long("baseline_limit")
+        .default_value("true")
+        .help("Limit maximum orbital period by observational baseline.")
     )
     .arg(
         Arg::new("decimals")
@@ -3010,36 +3097,44 @@ fn main() {
         .help("Set maximum periastron phase allowed in radians.")
     )
     .arg(
-        Arg::new("lomb_scargle_minimum_observations")
+        Arg::new("generalized_lomb_scargle_minimum_observations")
         .value_parser(value_parser!(usize))
-        .visible_alias("ls_min_obs")
-        .long("lomb_scargle_minimum_observations")
-        .default_value("3")
-        .help("Minimum number of observations needed to run Lomb-Scargle periodogram.")
+        .visible_alias("gls_min_obs")
+        .long("generalized_lomb_scargle_minimum_observations")
+        .default_value("4")
+        .help("Minimum number of observations needed to run periodogram.")
     )
     .arg(
-        Arg::new("lomb_scargle_frequencies")
+        Arg::new("generalized_lomb_scargle_frequencies")
         .value_parser(value_parser!(usize))
-        .visible_alias("ls_freqs")
-        .long("lomb_scargle_frequencies")
+        .visible_alias("gls_freqs")
+        .long("generalized_lomb_scargle_frequencies")
         .default_value("1000000")
-        .help("Number of Lomb-Scargle periodogram trial frequencies.")
+        .help("Number of periodogram trial frequencies.")
     )
     .arg(
-        Arg::new("lomb_scargle_trust_power")
+        Arg::new("generalized_lomb_scargle_trust_power")
         .value_parser(value_parser!(f64))
-        .visible_alias("ls_tp")
-        .long("lomb_scargle_trust_power")
-        .default_value("0.45")
-        .help("Lowest Lomb-Scargle power needed to constrain Genetic Algorithm.")
+        .visible_alias("gls_tp")
+        .long("generalized_lomb_scargle_trust_power")
+        .default_value("0.50")
+        .help("Lowest normalized peak power needed to constrain Genetic Algorithm.")
     )
     .arg(
-        Arg::new("lomb_scargle_trust_fraction")
+        Arg::new("generalized_lomb_scargle_trust_logfap")
         .value_parser(value_parser!(f64))
-        .visible_alias("ls_tf")
-        .long("lomb_scargle_trust_fraction")
+        .visible_alias("gls_tlogfap")
+        .long("generalized_lomb_scargle_trust_logfap")
+        .default_value("-4.0")
+        .help("Highest log false-alarm probability for acceptable periodogram period.")
+    )
+    .arg(
+        Arg::new("generalized_lomb_scargle_trust_period_fraction")
+        .value_parser(value_parser!(f64))
+        .visible_alias("gls_tpf")
+        .long("generalized_lomb_scargle_trust_period_fraction")
         .default_value("0.05")
-        .help("Fraction of adopted Lomb-Scargle period the Genetic Algorithmm searches around.")
+        .help("Fraction of adopted periodogram period the Genetic Algorithmm searches around.")
     )
     .arg(
         Arg::new("halleys_maximum_iterations")
@@ -3074,12 +3169,28 @@ fn main() {
         .help("Maximum number of Genetic Algorithm generations.")
     )
     .arg(
-        Arg::new("genetic_algorithm_sbx_distribution_index")
+        Arg::new("genetic_algorithm_min_sbx_distribution_index")
         .value_parser(value_parser!(f64))
-        .visible_alias("sbx_di")
-        .long("genetic_algorithm_sbx_distribution_index")
-        .default_value("20.0")
-        .help("SBX crossover distribution index.")
+        .visible_alias("min_sbx_di")
+        .long("genetic_algorithm_min_sbx_distribution_index")
+        .default_value("1.0")
+        .help("SBX crossover minimum distribution index.")
+    )
+    .arg(
+        Arg::new("genetic_algorithm_max_sbx_distribution_index")
+        .value_parser(value_parser!(f64))
+        .visible_alias("max_sbx_di")
+        .long("genetic_algorithm_max_sbx_distribution_index")
+        .default_value("10.0")
+        .help("SBX crossover maximum distribution index.")
+    )
+    .arg(
+        Arg::new("genetic_algorithm_sbx_self_adaptive_factor")
+        .value_parser(value_parser!(f64))
+        .visible_alias("sbx_saf")
+        .long("genetic_algorithm_sbx_self_adaptive_factor")
+        .default_value("1.05")
+        .help("SBX self-adaptive factor.")
     )
     .arg(
         Arg::new("genetic_algorithm_mutation_probability")
@@ -3094,7 +3205,7 @@ fn main() {
         .value_parser(value_parser!(f64))
         .visible_alias("elite_frac")
         .long("genetic_algorithm_elitism_fraction")
-        .default_value("0.1")
+        .default_value("0.01")
         .help("Elitism fraction for parent selection.")
     )
     .arg(
@@ -3102,7 +3213,7 @@ fn main() {
         .value_parser(value_parser!(f64))
         .visible_alias("damp_fact")
         .long("levenberg_marquardt_damping_factor")
-        .default_value("0.0001")
+        .default_value("0.01")
         .help("Damping factor for Levenberg-Marquardt algorithm.")
     )
     .arg(
@@ -3118,7 +3229,7 @@ fn main() {
         .value_parser(value_parser!(f64))
         .visible_alias("shrk_fract")
         .long("hooke_jeeves_shrink_fraction")
-        .default_value("0.50")
+        .default_value("0.95")
         .help("Shriking fraction between Hooke-Jeeves exploratory and pattern moves.")
     )
     .arg(
