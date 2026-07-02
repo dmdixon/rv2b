@@ -648,54 +648,55 @@ fn crossover_mutate(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>,
         param1_new = [0.5 * ((1.0 + beta) * param1[0] + (1.0 - beta) * param2[0]), 0.5 * ((1.0 + beta) * param1[1] + (1.0 - beta) * param2[1]), 0.5 * ((1.0 + beta) * param1[2] + (1.0 - beta) * param2[2]), 0.5 * ((1.0 + beta) * param1[3] + (1.0 - beta) * param2[3])];
         param2_new = [0.5 * ((1.0 - beta) * param1[0] + (1.0 + beta) * param2[0]), 0.5 * ((1.0 - beta) * param1[1] + (1.0 + beta) * param2[1]), 0.5 * ((1.0 - beta) * param1[2] + (1.0 + beta) * param2[2]), 0.5 * ((1.0 - beta) * param1[3] + (1.0 + beta) * param2[3])];
         
-        (model_rv1, _) = rv_curve_model(time, rv, param1_new, tolerance, decimals, halleys_max_iter);
-        (model_rv2, _) = rv_curve_model(time, rv, param2_new, tolerance, decimals, halleys_max_iter);
+        if (max_sbx_distr_index - min_sbx_distr_index) > tolerance {
+            (model_rv1, _) = rv_curve_model(time, rv, param1_new, tolerance, decimals, halleys_max_iter);
+            (model_rv2, _) = rv_curve_model(time, rv, param2_new, tolerance, decimals, halleys_max_iter);
 
-        score1 = score_function(rv, &model_rv1, weights);
-        score2 = score_function(rv, &model_rv2, weights);
+            score1 = score_function(rv, &model_rv1, weights);
+            score2 = score_function(rv, &model_rv2, weights);
 
-        if score1 < scores_array[index1] && score1 < scores_array[index2] {
-            sbx_distr_indices[index1] = sbx_self_adap_fact*(sbx_distr_indices[index1] + 1.0) - 1.0;
-        }
+            if score1 < scores_array[index1] && score1 < scores_array[index2] {
+                sbx_distr_indices[index1] = sbx_self_adap_fact*(sbx_distr_indices[index1] + 1.0) - 1.0;
+            }
 
-        else if score1 > scores_array[index1] && score1 > scores_array[index2] {
-            sbx_distr_indices[index1] = (sbx_distr_index_mean + 1.0)/sbx_self_adap_fact - 1.0;
-        }
+            else if score1 > scores_array[index1] && score1 > scores_array[index2] {
+                sbx_distr_indices[index1] = (sbx_distr_index_mean + 1.0)/sbx_self_adap_fact - 1.0;
+            }
 
-        if score2 < scores_array[index1] && score2 < scores_array[index2] {
-            sbx_distr_indices[index2] = sbx_self_adap_fact*(sbx_distr_index_mean + 1.0) - 1.0;
-        }
+            if score2 < scores_array[index1] && score2 < scores_array[index2] {
+                sbx_distr_indices[index2] = sbx_self_adap_fact*(sbx_distr_index_mean + 1.0) - 1.0;
+            }
 
-        else if score2 > scores_array[index1] && score2 > scores_array[index2] {
-            sbx_distr_indices[index2] = (sbx_distr_index_mean + 1.0)/sbx_self_adap_fact - 1.0;
-        }
+            else if score2 > scores_array[index1] && score2 > scores_array[index2] {
+                sbx_distr_indices[index2] = (sbx_distr_index_mean + 1.0)/sbx_self_adap_fact - 1.0;
+            }
 
-        if sbx_distr_indices[index1] < min_sbx_distr_index {
-            sbx_distr_indices[index1] = min_sbx_distr_index;
-        }
-        else if sbx_distr_indices[index1] > max_sbx_distr_index {
-            sbx_distr_indices[index1] = max_sbx_distr_index;
-        }
+            if sbx_distr_indices[index1] < min_sbx_distr_index {
+                sbx_distr_indices[index1] = min_sbx_distr_index;
+            }
+            else if sbx_distr_indices[index1] > max_sbx_distr_index {
+                sbx_distr_indices[index1] = max_sbx_distr_index;
+            }
 
-        if sbx_distr_indices[index2] < min_sbx_distr_index {
-            sbx_distr_indices[index2] = min_sbx_distr_index;
-        }
-        else if sbx_distr_indices[index2] > max_sbx_distr_index {
-            sbx_distr_indices[index2] = max_sbx_distr_index;
-        }
+            if sbx_distr_indices[index2] < min_sbx_distr_index {
+                sbx_distr_indices[index2] = min_sbx_distr_index;
+            }
+            else if sbx_distr_indices[index2] > max_sbx_distr_index {
+                sbx_distr_indices[index2] = max_sbx_distr_index;
+            }
 
-        sbx_distr_index_mean = (sbx_distr_indices[index1] + sbx_distr_indices[index2])/2.0;
-        if sbx_prob <= 0.5 {
-            beta = (2.0*sbx_prob).powf(1.0/(sbx_distr_index_mean + 1.0));
-        }
+            sbx_distr_index_mean = (sbx_distr_indices[index1] + sbx_distr_indices[index2])/2.0;
+            if sbx_prob <= 0.5 {
+                beta = (2.0*sbx_prob).powf(1.0/(sbx_distr_index_mean + 1.0));
+            }
 
-        else {
-            beta = (0.5/(1.0-sbx_prob)).powf(1.0/(sbx_distr_index_mean + 1.0));
-        }
+            else {
+                beta = (0.5/(1.0-sbx_prob)).powf(1.0/(sbx_distr_index_mean + 1.0));
+            }
 
-        param1_new = [0.5 * ((1.0 + beta) * param1[0] + (1.0 - beta) * param2[0]), 0.5 * ((1.0 + beta) * param1[1] + (1.0 - beta) * param2[1]), 0.5 * ((1.0 + beta) * param1[2] + (1.0 - beta) * param2[2]), 0.5 * ((1.0 + beta) * param1[3] + (1.0 - beta) * param2[3])];
-        param2_new = [0.5 * ((1.0 - beta) * param1[0] + (1.0 + beta) * param2[0]), 0.5 * ((1.0 - beta) * param1[1] + (1.0 + beta) * param2[1]), 0.5 * ((1.0 - beta) * param1[2] + (1.0 + beta) * param2[2]), 0.5 * ((1.0 - beta) * param1[3] + (1.0 + beta) * param2[3])];
-        
+            param1_new = [0.5 * ((1.0 + beta) * param1[0] + (1.0 - beta) * param2[0]), 0.5 * ((1.0 + beta) * param1[1] + (1.0 - beta) * param2[1]), 0.5 * ((1.0 + beta) * param1[2] + (1.0 - beta) * param2[2]), 0.5 * ((1.0 + beta) * param1[3] + (1.0 - beta) * param2[3])];
+            param2_new = [0.5 * ((1.0 - beta) * param1[0] + (1.0 + beta) * param2[0]), 0.5 * ((1.0 - beta) * param1[1] + (1.0 + beta) * param2[1]), 0.5 * ((1.0 - beta) * param1[2] + (1.0 + beta) * param2[2]), 0.5 * ((1.0 - beta) * param1[3] + (1.0 + beta) * param2[3])];
+        }
 
         if (rng.gen::<f64>() < mut_prob) || twin_params(param1, param2, decimal_precision)  {
             p1index = rng.gen_range(0..4) as usize;
@@ -972,9 +973,12 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
     let mut best_orbit_param: [f64;6] = [0.0;6];
     let mut new_score: f64;
     let mut new_orbit_param: [f64;6];
+    let mut best_lm_samples: Vec<[f64;6]> = Vec::new();
 
-    let mut lm_samples: Vec<[f64;6]> = Vec::new();
-    let mut lm_scores: Vec<f64> = Vec::new();    
+    let mut lm_samples: Vec<[f64;6]>;
+    let mut lm_scores: Vec<f64>;
+    let mut best_lm_scores: Vec<f64> = Vec::new();
+
 
     let mut niterer: usize = 0;
 
@@ -983,8 +987,9 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
     let mut scores_array: Array1<f64>;
 
     let mut niter_ga: usize = 0;
-    let mut niter_lm: usize = 0;
-    let mut new_niter_lm: usize;
+    let mut niter_lm: usize;
+    let mut best_niter_lm: usize = 0;
+
 
     if export_ga {
         let sample_directory_exists: bool = Path::new((output_directory.clone() +  "/samples").as_str()).is_dir();
@@ -1012,14 +1017,16 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
                 write(&output_file,values);
             }
             (_, new_orbit_param) = return_best(best_score,&scores_array,best_orbit_param,&orbit_params);
-            (lm_samples, lm_scores, new_niter_lm) = levenberg_marquardt(&time, &rv, &weights, new_orbit_param, bounds, cli);
+            (lm_samples, lm_scores, niter_lm) = levenberg_marquardt(&time, &rv, &weights, new_orbit_param, bounds, cli);
             new_score = lm_scores[lm_scores.len()-1];
             new_orbit_param = lm_samples[lm_samples.len()-1];
             
             if new_score > best_score {
                 best_score = new_score;
                 best_orbit_param = new_orbit_param;
-                niter_lm = new_niter_lm;
+                best_lm_scores = lm_scores;
+                best_lm_samples = lm_samples;
+                best_niter_lm = niter_lm;
                 niterer = 0;
             }
     
@@ -1052,9 +1059,8 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
             let _ = output_file.write_all("P,e,w,M0,K,v0,score".as_bytes());
 
             let mut values: Vec<String>;
-
-            for n in 0..(niter_lm+1) {
-                values = vec![lm_samples[n][0].to_string(),lm_samples[n][1].to_string(),lm_samples[n][2].to_string(),lm_samples[n][3].to_string(),lm_samples[n][4].to_string(),lm_samples[n][5].to_string(),lm_scores[n].to_string()];
+            for n in 0..(best_niter_lm + 1) {
+                values = vec![best_lm_samples[n][0].to_string(),best_lm_samples[n][1].to_string(),best_lm_samples[n][2].to_string(),best_lm_samples[n][3].to_string(),best_lm_samples[n][4].to_string(),best_lm_samples[n][5].to_string(),best_lm_scores[n].to_string()];
                 let _ = output_file.write_all("\n".as_bytes());
                 write(&output_file,values);
             }
@@ -1068,14 +1074,16 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
             (model_rvs,orbit_params)  = rv_matrix(time, rv, &params_array, tolerance, decimals, halleys_max_iter);
             scores_array = score_matrix(rv,&model_rvs,weights);
             (_, new_orbit_param) = return_best(best_score,&scores_array,best_orbit_param,&orbit_params);
-            (lm_samples, lm_scores, new_niter_lm) = levenberg_marquardt(&time, &rv, &weights, new_orbit_param, bounds, cli);
+            (lm_samples, lm_scores, niter_lm) = levenberg_marquardt(&time, &rv, &weights, new_orbit_param, bounds, cli);
             new_score = lm_scores[lm_scores.len()-1];
             new_orbit_param = lm_samples[lm_samples.len()-1];
             
             if new_score > best_score {
                 best_score = new_score;
                 best_orbit_param = new_orbit_param;
-                niter_lm = new_niter_lm;
+                best_lm_scores = lm_scores;
+                best_lm_samples = lm_samples;
+                best_niter_lm = niter_lm;
                 niterer = 0;
             }
 
@@ -1107,16 +1115,15 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
             let _ = output_file.write_all("P,e,w,M0,K,v0,score".as_bytes());
 
             let mut values: Vec<String>;
-
-            for n in 0..(niter_lm + 1) {
-                values = vec![lm_samples[n][0].to_string(),lm_samples[n][1].to_string(),lm_samples[n][2].to_string(),lm_samples[n][3].to_string(),lm_samples[n][4].to_string(),lm_samples[n][5].to_string(),lm_scores[n].to_string()];
+            for n in 0..(best_niter_lm + 1) {
+                values = vec![best_lm_samples[n][0].to_string(),best_lm_samples[n][1].to_string(),best_lm_samples[n][2].to_string(),best_lm_samples[n][3].to_string(),best_lm_samples[n][4].to_string(),best_lm_samples[n][5].to_string(),best_lm_scores[n].to_string()];
                 let _ = output_file.write_all("\n".as_bytes());
                 write(&output_file,values);
             }
         }
     }
 
-    (best_orbit_param, best_score, niter_ga, niter_lm, gls_period, gls_power, gls_logfap)
+    (best_orbit_param, best_score, niter_ga, best_niter_lm, gls_period, gls_power, gls_logfap)
 }
 
 //Function used for running the Levenberg-Marquardt algorithm.
@@ -1252,7 +1259,6 @@ fn hooke_jeeves(time: &Array1<f64>,rv: &Array1<f64>, weights: &Array1<f64>, orbi
         write(&output_file,values);
     
         'exploratory_loop: for _ in 0..hj_max_iter {
-            niter+=1;
             shifts = 0;
             for j in 0..6 {            
                 let mut orbit_param_shift_minus: [f64;6] = orbit_param_shift;
@@ -1298,6 +1304,7 @@ fn hooke_jeeves(time: &Array1<f64>,rv: &Array1<f64>, weights: &Array1<f64>, orbi
             }
 
             else {
+                niter+=1;
                 let pattern_shift: [f64;6] = [orbit_param_shift_new[0]-orbit_param_shift[0],orbit_param_shift_new[1]-orbit_param_shift[1],orbit_param_shift_new[2]-orbit_param_shift[2],orbit_param_shift_new[3]-orbit_param_shift[3],orbit_param_shift_new[4]-orbit_param_shift[4],orbit_param_shift_new[5]-orbit_param_shift[5]];
                 orbit_param_shift = orbit_param_shift_new;
 
@@ -1312,24 +1319,21 @@ fn hooke_jeeves(time: &Array1<f64>,rv: &Array1<f64>, weights: &Array1<f64>, orbi
                     if score_shift_pattern > score && bounds_check_bool([orbit_param_shift_new[0],orbit_param_shift_new[1],orbit_param_shift_new[2],orbit_param_shift_new[3]], bounds) {
                         score = score_shift_pattern;
                         orbit_param_shift = orbit_param_shift_new;
-
-                        values = vec![orbit_param_shift[0].to_string(),orbit_param_shift[1].to_string(),orbit_param_shift[2].to_string(),orbit_param_shift[3].to_string(),orbit_param_shift[4].to_string(),orbit_param_shift[5].to_string(),score.to_string()];
-                        let _ = output_file.write_all("\n".as_bytes());
-                        write(&output_file,values);
-
                     }
 
                     else {
                         break 'pattern_loop;
                     }
                 }
+                values = vec![orbit_param_shift[0].to_string(),orbit_param_shift[1].to_string(),orbit_param_shift[2].to_string(),orbit_param_shift[3].to_string(),orbit_param_shift[4].to_string(),orbit_param_shift[5].to_string(),score.to_string()];
+                let _ = output_file.write_all("\n".as_bytes());
+                write(&output_file,values);
             }
         }
     }
 
     else {
         'exploratory_loop: for _ in 0..hj_max_iter {
-            niter+=1;
             shifts = 0;
             for j in 0..6 {          
                 let mut orbit_param_shift_minus: [f64;6] = orbit_param_shift;
@@ -1376,6 +1380,7 @@ fn hooke_jeeves(time: &Array1<f64>,rv: &Array1<f64>, weights: &Array1<f64>, orbi
             }
 
             else {
+                niter+=1;
                 let pattern_shift: [f64;6] = [orbit_param_shift_new[0]-orbit_param_shift[0],orbit_param_shift_new[1]-orbit_param_shift[1],orbit_param_shift_new[2]-orbit_param_shift[2],orbit_param_shift_new[3]-orbit_param_shift[3],orbit_param_shift_new[4]-orbit_param_shift[4],orbit_param_shift_new[5]-orbit_param_shift[5]];
                 orbit_param_shift = orbit_param_shift_new;
 
@@ -2541,7 +2546,7 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     let header: bool = cli.get_one::<bool>("named_columns").unwrap().to_owned();
     let comment: &str = cli.get_one::<String>("comment").unwrap().as_str();
     let decimals: f64 = cli.get_one::<usize>("decimals").unwrap().to_owned() as f64;
-    let tolerance: f64 = f64:: EPSILON * cli.get_one::<f64>("tolerance").unwrap().to_owned();
+    let tolerance: f64 = f64::EPSILON * cli.get_one::<f64>("tolerance").unwrap().to_owned();
     let halleys_max_iter: usize = cli.get_one::<usize>("halleys_maximum_iterations").unwrap().to_owned();
     let rv_err_weights: bool = cli.get_one::<bool>("radial_velocity_error_weights").unwrap().to_owned();
     let population: usize = cli.get_one::<usize>("genetic_algorithm_population").unwrap().to_owned();
