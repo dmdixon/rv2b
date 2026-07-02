@@ -11,7 +11,7 @@ Radial Velocity Two-Body (RV2B) is a command-line interface (CLI) tool designed 
 1. Generalized Lomb-Scargle Periodogram [Period Estimation]
 2. Latin Hypercube [*R*<sup>n</sup> Stratified Initialization]
 3. Halley's Method [Mean Anomaly -> Eccentric Anomaly]
-4. Genetic Algorithm + Simple Linear Regression [Evolutionary Global Convergence]
+4. Self-Adaptive Genetic Algorithm + Simple Linear Regression [Evolutionary Global Convergence]
 5. Levenberg-Marquardt [Derivative Local Convergence]
 6. Hooke-Jeeves [Non-Derivative Local Convergence]
 7. Metropolis-Hastings [Posterior Sampling]
@@ -20,11 +20,11 @@ Radial Velocity Two-Body (RV2B) is a command-line interface (CLI) tool designed 
 
 Installation of RV2B on your machine is done in 3 simple steps.
 
-1. Install the Rust programming language on your machine by following the instructions at https://rust-lang.org/tools/install/. This should be simple and fast (a few minutes at most) for most operating systems.
+1. Install the Rust programming language on your machine by following the instructions at https://rust-lang.org/tools/install/. This should be simple and fast (a few minutes) for most operating systems.
 2. Use the "Code" button on this page to download the "rv2b-main.zip" folder containing the source files for the software and unzip it wherever you would like the code to live.
 3. Go into the "rv2b-main" folder and compile the code with ```cargo build --release``` and wait for the compilation to finish. Once it is done, RV2B is installed! 
    
-To check if installation worked, run ```./target/release/rv2b -h``` in the "rv2b-main" directory and check that CLI arguments are printed to the screen. If CLI arguments aren't printed, make sure the previous steps were followed carefully. If the code is still not functional, email dmdixon1992@gmail.com for further help.
+To check if the installation worked, run ```./target/release/rv2b -h``` in the "rv2b-main" directory and check that CLI arguments are printed to the screen. If CLI arguments aren't printed, make sure the previous steps were followed carefully. If the code is still not functional, email dmdixon1992@gmail.com for further help.
 
 ## Basic Use:
 
