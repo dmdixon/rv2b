@@ -10,9 +10,9 @@
 | runtime | Runtime in seconds for evaluating orbit solution. |
 | nobs | Number of radial velocity observations in radial velocity data file. | 
 | dof | Degrees of freedom (N - P). |
-| ls_period | Lomb-Scargle period with highest normalized power. |
-| ls_power | Highest normalized power in Lomb-Scargle periodogram. |
-| ls_log_fap | Log of the Baluev (2008) false alarm probability for the highest power period. |
+| gls_period | Generalized Lomb-Scargle period with highest normalized power. |
+| gls_power | Highest normalized power in Generalized Lomb-Scargle periodogram. |
+| gls_log_fap | Log of the Baluev (2008) false alarm probability for the highest power period. |
 | population | Genetic Algorithm population used for solution evaluation. |
 | niter_ga | Number of Genetic Algorithm generations processed before convergence. |
 | niter_lm | Number of Levenberg-Marquardt Jacobian steps processed before convergence. |
