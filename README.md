@@ -36,7 +36,7 @@ RV2B defaults were carefully chosen to minimize the need to manually set most CL
 
 This will attempt to fit the data in "./Latham_2002_171_SB1s/G99-52_rv.csv" with the default CLI arguments. By default, RV2B will output a plot depicting the model fit and save it to disk. The following image is such a plot and shows an example default fit for G99-52.
 
-![Example of a default fit for Latham target Latham target G99-52.](G99-52_rv_RMS_0.60607_P_560.21693_e_0.21089_rv2b_fit.svg)
+![Example of a default fit for Latham target Latham target G99-52.](G99-52_rv_RMS_0.61214_P_560.86662_e_0.20838_rv2b_fit.svg)
 <p align="center"><b>Example of a default fit for Latham target G99-52.</b></p> 
 
 All radial velocity data files for RV2B must be in a single character (like a comma) text-delimited file of 2 or 3 columns in order of time, radial velocity, and radial velocity error (optional), respectively. All other file formats will fail! An example of a space-delimited radial velocity data file with column names would look something like.
@@ -47,7 +47,7 @@ Some solutions for the Latham dataset with default settings can take well over a
 
 ```./target/release/rv2b -i ./Latham_2002_171_SB1s/G99-52_rv.csv -p 1000```
 
-**Note:** There isn't a single combination of computationally conservative RV2B arguments that is known a priori to minimize the runtime and still get an accurate solution for every use case. For investigations of single targets, it may be best to start small and progressively ramp up on runtime as needed. The CLI format of RV2B is highly amendable to code wrapping, so pipeline logic handled by scripting (Python, Bash, etc.) could be used to automate a refitting procedure for many targets. However, running the code for a few minutes to be more certain of a high-quality solution is the easiest approach if the waiting time is not a concern.
+**Note:** There isn't a single combination of computationally conservative RV2B arguments that is known a priori to minimize the runtime and still get an accurate solution for every use case. For investigations of single targets, it may be best to start small and progressively ramp up on runtime as needed. The CLI format of RV2B is highly amenable to code wrapping, so pipeline logic handled by scripting (Python, Bash, etc.) could be used to automate a refitting procedure for many targets. However, running the code for a few minutes to be more certain of a high-quality solution is the easiest approach if the waiting time is not a concern.
 
 To fit simultaneous solutions with multiprocessing, you can use -l to run a file listing the file paths for each radial velocity data file on separate lines. A simple example using the included Latham dataset is the following.
 
