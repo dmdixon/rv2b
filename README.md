@@ -43,9 +43,9 @@ All radial velocity data files for RV2B must be in a single character (like a co
 
 ```./target/release/rv2b -i some_single_spaced_rv_data.txt -d " " -n true```
 
-Some solutions for the Latham dataset with default settings can take well over a minute to run. However, this is mostly due to the default Genetic Algorithm being significantly overtuned for well-sampled targets. This is done to have extra robustness against early local convergence as a default behavior, but in many cases, it is overkill. For example, just refitting G99-52 with a Genetic Algorithm population of 1,000 (default = 10,000) substantially lowers the runtime to around a few seconds, but will still generally return the same (within uncertainties) solution.
+Some solutions for the Latham dataset with default settings can take well over a minute to run. However, this is mostly due to the default Genetic Algorithm being significantly overtuned for well-sampled targets. This is done to have extra robustness against early local convergence as a default behavior, but in many cases, it is overkill. For example, just refitting G99-52 with a Genetic Algorithm population of 1,000 (default: population = 10,000) and turning off the self-adaptation by having equal boundaries (default: min_sbx_distribution_index = 1.0 & max_sbx_distribution_index = 10.0) substantially lowers the runtime to around a few seconds, but will still generally return the same (within uncertainties) solution.
 
-```./target/release/rv2b -i ./Latham_2002_171_SB1s/G99-52_rv.csv -p 1000```
+```./target/release/rv2b -i ./Latham_2002_171_SB1s/G99-52_rv.csv -p 1000 --min_sbx_di 2.0 --max_sbx_di 2.0```
 
 **Note:** There isn't a single combination of computationally conservative RV2B arguments that is known a priori to minimize the runtime and still get an accurate solution for every use case. For investigations of single targets, it may be best to start small and progressively ramp up on runtime as needed. The CLI format of RV2B is highly amenable to code wrapping, so pipeline logic handled by scripting (Python, Bash, etc.) could be used to automate a refitting procedure for many targets. However, running the code for a few minutes to be more certain of a high-quality solution is the easiest approach if the waiting time is not a concern.
 
