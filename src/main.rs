@@ -386,14 +386,14 @@ fn roulette_selection(scores: &Array1<f64>, elite_frac: f64) -> Vec<usize> {
 fn init_pop(time: &Array1<f64> , rv: &Array1<f64>, weights: &Array1<f64>, bounds: [(f64,f64);4], population: usize, gls_min_obs: usize, name: String, export_ls: bool, cli: &ArgMatches) -> (Array1<[f64;4]>, f64, f64, f64) {
     let gls_nfreqs = cli.get_one::<usize>("generalized_lomb_scargle_frequencies").unwrap().to_owned();
     let gls_trust_power = cli.get_one::<f64>("generalized_lomb_scargle_trust_power").unwrap().to_owned();
-    let gls_trust_log_fap = cli.get_one::<f64>("generalized_lomb_scargle_trust_log_false_alarm_probability").unwrap().to_owned();
+    let gls_trust_logfap = cli.get_one::<f64>("generalized_lomb_scargle_trust_logfap").unwrap().to_owned();
     let gls_trust_p_frac = cli.get_one::<f64>("generalized_lomb_scargle_trust_period_fraction").unwrap().to_owned();
     let decimals: f64 = cli.get_one::<usize>("decimals").unwrap().to_owned() as f64;
     let output_directory: String = cli.get_one::<String>("output_directory").unwrap().to_owned();
 
     let mut gls_period: f64 = f64::NAN;
     let mut gls_power: f64 = f64::NAN;
-    let mut gls_log_fap: f64 = f64::NAN;
+    let mut gls_logfap: f64 = f64::NAN;
     let mut window_period: f64 = f64::NAN;
 
     let (pmin, pmax): (f64, f64) = bounds[0];
@@ -438,11 +438,11 @@ fn init_pop(time: &Array1<f64> , rv: &Array1<f64>, weights: &Array1<f64>, bounds
         gls_power = round_f64(gls_powers[index], decimals);
         let gls_fap = 1.0 - (1.0 - (1.0 - gls_power).powf((tlen - 4.0)/2.0)) * (-gls_freq*(4.0*PI*time.var(0.0)).sqrt()*(1.0-gls_power).powf((tlen-5.0)/2.0)*gls_power.sqrt()).exp();
         if gls_fap < f64::EPSILON {
-            gls_log_fap = round_f64((f64::EPSILON).log10(),decimals);
+            gls_logfap = round_f64((f64::EPSILON).log10(),decimals);
         }
 
         else {
-            gls_log_fap = round_f64(gls_fap.log10(), decimals);
+            gls_logfap = round_f64(gls_fap.log10(), decimals);
         }
 
         let mut a: f64;
@@ -481,7 +481,7 @@ fn init_pop(time: &Array1<f64> , rv: &Array1<f64>, weights: &Array1<f64>, bounds
 
     let mut p_space_element: Array1<f64>;
     
-    if time.len() >= gls_min_obs && gls_power >= gls_trust_power && gls_log_fap <= gls_trust_log_fap && (time[time.len()-1] - time[0]) >= 1.25*gls_period {
+    if time.len() >= gls_min_obs && gls_power >= gls_trust_power && gls_logfap <= gls_trust_logfap && (time[time.len()-1] - time[0]) >= 1.25*gls_period {
         let mut p_space = Vec::new();
         let mut init_periods = Vec::new();
         for init_period in [gls_period, 2.0*gls_period, 3.0*gls_period, (gls_period.powf(-1.0)-window_period.powf(-1.0)).abs().powf(-1.0), (gls_period.powf(-1.0)+window_period.powf(-1.0)).abs().powf(-1.0), (gls_period.powf(-1.0)-2.0*window_period.powf(-1.0)).abs().powf(-1.0), (gls_period.powf(-1.0)+2.0*window_period.powf(-1.0)).abs().powf(-1.0), ((2.0*gls_period).powf(-1.0)-window_period.powf(-1.0)).abs().powf(-1.0), ((2.0*gls_period).powf(-1.0)+window_period.powf(-1.0)).abs().powf(-1.0), ((2.0*gls_period).powf(-1.0)-2.0*window_period.powf(-1.0)).abs().powf(-1.0), ((2.0*gls_period).powf(-1.0)+2.0*window_period.powf(-1.0)).abs().powf(-1.0)] {
@@ -530,7 +530,7 @@ fn init_pop(time: &Array1<f64> , rv: &Array1<f64>, weights: &Array1<f64>, bounds
         params_array[index] = [p_array[index], e_array[index], w_array[index], m0_array[index]];
     }
 
-    (params_array, gls_period, gls_power, gls_log_fap)
+    (params_array, gls_period, gls_power, gls_logfap)
 }
 
 //Function for converting mean anomaly to eccentric anomaly via Halley's method.
@@ -964,7 +964,7 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
         max_gens = min_gens;
     }
 
-    let (mut params_array, gls_period, gls_power, gls_log_fap): (Array1<[f64;4]>, f64, f64, f64) = init_pop(time, rv, weights, bounds, population, gls_min_obs, name.clone(), export_ls, cli);
+    let (mut params_array, gls_period, gls_power, gls_logfap): (Array1<[f64;4]>, f64, f64, f64) = init_pop(time, rv, weights, bounds, population, gls_min_obs, name.clone(), export_ls, cli);
     
     let mut sbx_distr_indices: Array1<f64> =  Array1::from_elem(population, min_sbx_distr_index);
 
@@ -1116,7 +1116,7 @@ fn genetic_algorithm(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>
         }
     }
 
-    (best_orbit_param, best_score, niter_ga, niter_lm, gls_period, gls_power, gls_log_fap)
+    (best_orbit_param, best_score, niter_ga, niter_lm, gls_period, gls_power, gls_logfap)
 }
 
 //Function used for running the Levenberg-Marquardt algorithm.
@@ -2546,7 +2546,7 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     let rv_err_weights: bool = cli.get_one::<bool>("radial_velocity_error_weights").unwrap().to_owned();
     let population: usize = cli.get_one::<usize>("genetic_algorithm_population").unwrap().to_owned();
     let gls_trust_power: f64 = cli.get_one::<f64>("generalized_lomb_scargle_trust_power").unwrap().to_owned();
-    let gls_trust_log_fap = cli.get_one::<f64>("generalized_lomb_scargle_trust_log_false_alarm_probability").unwrap().to_owned();
+    let gls_trust_logfap = cli.get_one::<f64>("generalized_lomb_scargle_trust_logfap").unwrap().to_owned();
     let time_unit: String = cli.get_one::<String>("time_unit").unwrap().to_owned();
     let rv_unit: String = cli.get_one::<String>("radial_velocity_unit").unwrap().to_owned();
     let chains: usize = cli.get_one::<usize>("metropolis_hastings_chains").unwrap().to_owned();
@@ -2669,7 +2669,7 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     let wvector: DVector<f64> = DVector::from_row_slice(weights.as_slice().unwrap());
     let wmatrix: DMatrix<f64> = DMatrix::from_diagonal(&wvector);
 
-    let (orbit_param_ga, _, niter_ga, niter_lm, gls_period, gls_power, gls_log_fap): ([f64;6],f64, usize, usize, f64, f64, f64) = genetic_algorithm(&time, &rv, &weights, bounds, name.clone(), export_ls, export_ga, export_lm, cli);
+    let (orbit_param_ga, _, niter_ga, niter_lm, gls_period, gls_power, gls_logfap): ([f64;6],f64, usize, usize, f64, f64, f64) = genetic_algorithm(&time, &rv, &weights, bounds, name.clone(), export_ls, export_ga, export_lm, cli);
 
     let (orbit_param_hj, score_hj, niter_hj): ([f64;6], f64, usize) = hooke_jeeves(&time, &rv, &weights, orbit_param_ga, bounds, name.clone(), export_hj, cli);
     let jcbn_hj: DMatrix<f64> = jacobian(&time, orbit_param_hj, tolerance, halleys_max_iter);
@@ -2806,7 +2806,7 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     result.insert(String::from("dof"), dof.to_string());
     result.insert(String::from("gls_period"), gls_period.to_string());
     result.insert(String::from("gls_power"), gls_power.to_string());
-    result.insert(String::from("gls_log_fap"), gls_log_fap.to_string());
+    result.insert(String::from("gls_logfap"), gls_logfap.to_string());
     result.insert(String::from("population"), population.to_string());
     result.insert(String::from("niter_ga"), niter_ga.to_string());
     result.insert(String::from("niter_lm"), niter_lm.to_string());
@@ -2887,7 +2887,7 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     result.insert(String::from("sw_logp"), sw_logp.to_string());
 
     if export_p {
-        let gls: bool = (gls_power >= gls_trust_power) && (gls_log_fap <= gls_trust_log_fap) && ((time[time.len()-1] - time[0]) >= 1.25*gls_period);
+        let gls: bool = (gls_power >= gls_trust_power) && (gls_logfap <= gls_trust_logfap) && ((time[time.len()-1] - time[0]) >= 1.25*gls_period);
         plot_rv_curve(&time, &rv, &rv_err, &rv_res, &result, rundate_string, has_errors, gls, cli);
     }
 
