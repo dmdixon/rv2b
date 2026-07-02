@@ -43,7 +43,7 @@ All radial velocity data files for RV2B must be in a single character (like a co
 
 ```./target/release/rv2b -i some_single_spaced_rv_data.txt -d " " -n true```
 
-Some solutions for the Latham dataset with default settings can take well over a minute to run. However, this is mostly due to the default Genetic Algorithm being significantly overtuned for well-sampled targets. This is done to have extra robustness against early local convergence as a default behavior, but in many cases, it is overkill. For example, just refitting G99-52 with a Genetic Algorithm population of 1,000 (default: population = 10,000) and turning off the self-adaptation by having equal boundaries (default: min_sbx_distribution_index = 1.0 & max_sbx_distribution_index = 10.0) substantially lowers the runtime to around a few seconds, but will still generally return the same (within uncertainties) solution.
+Some solutions for the Latham dataset with default settings can take well over a minute to run. However, this is mostly due to the default Genetic Algorithm being significantly overtuned for well-sampled targets. This is done to have extra robustness against early local convergence as a default behavior, but in many cases, it is overkill. For example, just refitting G99-52 with a Genetic Algorithm population of 1,000 (default: population = 10,000) and turning off the self-adaptation by having equal boundaries (default: minimum sbx distribution index = 1.0 & maximum sbx distribution index = 10.0) substantially lowers the runtime to around a few seconds, but will still generally return the same (within uncertainties) solution.
 
 ```./target/release/rv2b -i ./Latham_2002_171_SB1s/G99-52_rv.csv -p 1000 --min_sbx_di 2.0 --max_sbx_di 2.0```
 
