@@ -256,7 +256,7 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
         m0max = 2.0*PI;
     }
 
-    [(round_f64(pmin,decimals),round_f64(pmax,decimals)),(round_f64(emin,decimals),round_f64(emax,decimals)),(round_f64(wmin,decimals),round_f64(wmax,decimals)),(round_f64(m0min,decimals),round_f64(m0max,decimals))]
+    [(pmin,pmax),(emin,emax),(wmin,wmax),(m0min,m0max)]
 }
 
 //Function to check and enforce parameter boundaries on array of nonlinear parameter sets.
