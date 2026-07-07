@@ -648,7 +648,7 @@ fn crossover_mutate(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f64>,
         param1_new = [0.5 * ((1.0 + beta) * param1[0] + (1.0 - beta) * param2[0]), 0.5 * ((1.0 + beta) * param1[1] + (1.0 - beta) * param2[1]), 0.5 * ((1.0 + beta) * param1[2] + (1.0 - beta) * param2[2]), 0.5 * ((1.0 + beta) * param1[3] + (1.0 - beta) * param2[3])];
         param2_new = [0.5 * ((1.0 - beta) * param1[0] + (1.0 + beta) * param2[0]), 0.5 * ((1.0 - beta) * param1[1] + (1.0 + beta) * param2[1]), 0.5 * ((1.0 - beta) * param1[2] + (1.0 + beta) * param2[2]), 0.5 * ((1.0 - beta) * param1[3] + (1.0 + beta) * param2[3])];
         
-        if (max_sbx_distr_index - min_sbx_distr_index) > tolerance || (sbx_self_adap_fact - 1.0).abs() > tolerance {
+        if (max_sbx_distr_index - min_sbx_distr_index) > tolerance && (sbx_self_adap_fact - 1.0).abs() > tolerance {
             (model_rv1, _) = rv_curve_model(time, rv, param1_new, tolerance, decimals, halleys_max_iter);
             (model_rv2, _) = rv_curve_model(time, rv, param2_new, tolerance, decimals, halleys_max_iter);
 
