@@ -43,8 +43,8 @@
 | --genetic_algorithm_minimum_generation | | -g | Minimum number of Genetic Algorithm generations. | 100 |
 | --genetic_algorithm_maximum_generation | | -G | Maximum number of Genetic Algorithm generations. | 1,000 |
 | --genetic_algorithm_min_sbx_distribution_index | --min_sbx_di  | | SBX crossover minimum distribution index. | 1.0 | SBX distribution indices are initialized with this value. |
-| --genetic_algorithm_max_sbx_distribution_index | --max_sbx_di  | | SBX crossover maximum distribution index. | 10.0 |
-| --genetic_algorithm_self_adaptive_factor | --sbx_saf  | | SBX self-adaptive factor. | 1.05 |
+| --genetic_algorithm_max_sbx_distribution_index | --max_sbx_di  | | SBX crossover maximum distribution index. | 10.0 | Self-adaptation turns off if this value equals min value. |
+| --genetic_algorithm_self_adaptive_factor | --sbx_saf  | | SBX self-adaptive factor. | 1.05 | Self-adaptation turns off if this value equals 1.0. | 
 | --genetic_algorithm_mutation_probability | --mut_prob  | | Mutation probability of crossover child. | 0.01 | |
 | --genetic_algorithm_elitism_fraction | --elite_frac | | Elitism fraction for parent selection. | 0.01 | |
 | --levenberg_marquardt_damping_factor | --damp_fact  | | Damping factor for Levenberg-Marquardt algorithm. | 0.01 | |
