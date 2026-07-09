@@ -3250,7 +3250,7 @@ fn main() {
         .value_parser(value_parser!(usize))
         .visible_alias("chns")
         .long("metropolis_hastings_chains")
-        .default_value("50")
+        .default_value("100")
         .help("Number of sampling chains used in Metropolis-Hastings algorithm.")
     )
     .arg(
@@ -3258,7 +3258,7 @@ fn main() {
         .value_parser(value_parser!(usize))
         .visible_alias("bi")
         .long("metropolis_hastings_chain_burn_in")
-        .default_value("500")
+        .default_value("1000")
         .help("Number of burn-in samples used in Metropolis-Hastings algorithm.")
     )
     .arg(
@@ -3266,7 +3266,7 @@ fn main() {
         .value_parser(value_parser!(usize))
         .visible_alias("chn_smpls")
         .long("metropolis_hastings_chain_samples")
-        .default_value("5000")
+        .default_value("10000")
         .help("Number of samples after burn-in for each chain used in Metropolis-Hastings algorithm.")
     )
     .arg(
