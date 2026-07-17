@@ -259,6 +259,11 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
     [(pmin,pmax),(emin,emax),(wmin,wmax),(m0min,m0max)]
 }
 
+//Function for wrapping angles to between 0.0 and 2.0*PI;
+fn wrap_angle(angle: f64) -> f64{
+    angle - 2.0*PI*(angle/(2.0*PI)).floor()
+}
+
 //Function to check and enforce parameter boundaries on array of nonlinear parameter sets.
 fn bounds_check(params_array: &mut Array1<[f64;4]>, bounds: [(f64,f64);4]) {
     let population: usize = params_array.len();
@@ -273,6 +278,9 @@ fn bounds_check(params_array: &mut Array1<[f64;4]>, bounds: [(f64,f64);4]) {
         let mut e = params_array[n][1];
         let mut w = params_array[n][2];
         let mut m0 = params_array[n][3];
+
+        w = wrap_angle(w);
+        m0 = wrap_angle(m0);
 
         if p < pmin {
             p = pmin;
@@ -292,7 +300,7 @@ fn bounds_check(params_array: &mut Array1<[f64;4]>, bounds: [(f64,f64);4]) {
             w = wmin;
         }
         else if w > wmax {
-             w = wmax;
+            w = wmax;
         }
 
         if m0 < m0min {
@@ -1175,8 +1183,8 @@ fn levenberg_marquardt(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
 
         new_orbit_param[0] = round_f64(new_orbit_param[0], decimals);
         new_orbit_param[1] = round_f64(new_orbit_param[1], decimals);
-        new_orbit_param[2] = round_f64(new_orbit_param[2], decimals);
-        new_orbit_param[3] = round_f64(new_orbit_param[3], decimals);
+        new_orbit_param[2] = round_f64(wrap_angle(new_orbit_param[2]), decimals);
+        new_orbit_param[3] = round_f64(wrap_angle(new_orbit_param[3]), decimals);
         new_orbit_param[4] = round_f64(new_orbit_param[4], decimals);
         new_orbit_param[5] = round_f64(new_orbit_param[5], decimals);
 
@@ -1264,8 +1272,14 @@ fn hooke_jeeves(time: &Array1<f64>,rv: &Array1<f64>, weights: &Array1<f64>, orbi
                 let mut orbit_param_shift_minus: [f64;6] = orbit_param_shift;
                 let mut orbit_param_shift_plus: [f64;6] = orbit_param_shift;
                 for k in j..6 {
-                    orbit_param_shift_minus[k] = round_f64(orbit_param_shift_minus[k] - h_array[k], decimals);
-                    orbit_param_shift_plus[k] = round_f64(orbit_param_shift_plus[k] + h_array[k], decimals);
+                    if (k==2) || (k==3) {
+                        orbit_param_shift_minus[k] = round_f64(wrap_angle(orbit_param_shift_minus[k] - h_array[k]), decimals);
+                        orbit_param_shift_plus[k] = round_f64(wrap_angle(orbit_param_shift_plus[k] + h_array[k]), decimals);
+                    }
+                    else {
+                        orbit_param_shift_minus[k] = round_f64(orbit_param_shift_minus[k] - h_array[k], decimals);
+                        orbit_param_shift_plus[k] = round_f64(orbit_param_shift_plus[k] + h_array[k], decimals);
+                    }
             
                     let model_rv_shift_minus: Array1<f64> = rv_curve_model2(time, orbit_param_shift_minus, tolerance, halleys_max_iter);
                     let model_rv_shift_plus: Array1<f64> = rv_curve_model2(time, orbit_param_shift_plus, tolerance, halleys_max_iter);
@@ -1312,7 +1326,7 @@ fn hooke_jeeves(time: &Array1<f64>,rv: &Array1<f64>, weights: &Array1<f64>, orbi
                 let mut score_shift_pattern: f64;
 
                 'pattern_loop: loop {
-                    orbit_param_shift_new = [round_f64(orbit_param_shift[0]+pattern_shift[0], decimals),round_f64(orbit_param_shift[1]+pattern_shift[1], decimals),round_f64(orbit_param_shift[2]+pattern_shift[2], decimals),round_f64(orbit_param_shift[3]+pattern_shift[3], decimals),round_f64(orbit_param_shift[4]+pattern_shift[4], decimals),round_f64(orbit_param_shift[5]+pattern_shift[5], decimals)];
+                    orbit_param_shift_new = [round_f64(orbit_param_shift[0]+pattern_shift[0], decimals),round_f64(orbit_param_shift[1]+pattern_shift[1], decimals),round_f64(wrap_angle(orbit_param_shift[2]+pattern_shift[2]), decimals),round_f64(wrap_angle(orbit_param_shift[3]+pattern_shift[3]), decimals),round_f64(orbit_param_shift[4]+pattern_shift[4], decimals),round_f64(orbit_param_shift[5]+pattern_shift[5], decimals)];
                     model_rv_shift_pattern = rv_curve_model2(time, orbit_param_shift_new, tolerance, halleys_max_iter);
                     score_shift_pattern = score_function(rv,&model_rv_shift_pattern,weights);
 
@@ -1339,8 +1353,14 @@ fn hooke_jeeves(time: &Array1<f64>,rv: &Array1<f64>, weights: &Array1<f64>, orbi
                 let mut orbit_param_shift_minus: [f64;6] = orbit_param_shift;
                 let mut orbit_param_shift_plus: [f64;6] = orbit_param_shift;
                 for k in j..6 {
-                    orbit_param_shift_minus[k] = round_f64(orbit_param_shift_minus[k] - h_array[k], decimals);
-                    orbit_param_shift_plus[k] = round_f64(orbit_param_shift_plus[k] + h_array[k], decimals);
+                    if (k==2) || (k==3) {
+                        orbit_param_shift_minus[k] = round_f64(wrap_angle(orbit_param_shift_minus[k] - h_array[k]), decimals);
+                        orbit_param_shift_plus[k] = round_f64(wrap_angle(orbit_param_shift_plus[k] + h_array[k]), decimals);
+                    }
+                    else {
+                        orbit_param_shift_minus[k] = round_f64(orbit_param_shift_minus[k] - h_array[k], decimals);
+                        orbit_param_shift_plus[k] = round_f64(orbit_param_shift_plus[k] + h_array[k], decimals);
+                    }
             
                     let model_rv_shift_minus: Array1<f64> = rv_curve_model2(time, orbit_param_shift_minus, tolerance, halleys_max_iter);
                     let model_rv_shift_plus: Array1<f64> = rv_curve_model2(time, orbit_param_shift_plus, tolerance, halleys_max_iter);
@@ -1388,7 +1408,7 @@ fn hooke_jeeves(time: &Array1<f64>,rv: &Array1<f64>, weights: &Array1<f64>, orbi
                 let mut score_shift_pattern: f64;
 
                 'pattern_loop: loop {
-                    orbit_param_shift_new = [round_f64(orbit_param_shift[0]+pattern_shift[0], decimals),round_f64(orbit_param_shift[1]+pattern_shift[1], decimals),round_f64(orbit_param_shift[2]+pattern_shift[2], decimals),round_f64(orbit_param_shift[3]+pattern_shift[3], decimals),round_f64(orbit_param_shift[4]+pattern_shift[4], decimals),round_f64(orbit_param_shift[5]+pattern_shift[5], decimals)];
+                    orbit_param_shift_new = [round_f64(orbit_param_shift[0]+pattern_shift[0], decimals),round_f64(orbit_param_shift[1]+pattern_shift[1], decimals),round_f64(wrap_angle(orbit_param_shift[2]+pattern_shift[2]), decimals),round_f64(wrap_angle(orbit_param_shift[3]+pattern_shift[3]), decimals),round_f64(orbit_param_shift[4]+pattern_shift[4], decimals),round_f64(orbit_param_shift[5]+pattern_shift[5], decimals)];
                     model_rv_shift_pattern = rv_curve_model2(time, orbit_param_shift_new, tolerance, halleys_max_iter);
                     score_shift_pattern = score_function(rv,&model_rv_shift_pattern,weights);
 
@@ -1503,12 +1523,12 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
         let mut values: Vec<String>;
 
         for _ in 0..chains {
-            p_old = orbit_param[0] + normal_p.sample(&mut rng);
-            e_old = orbit_param[1] + normal_e.sample(&mut rng);
-            w_old = orbit_param[2] + normal_w.sample(&mut rng);
-            m0_old = orbit_param[3] + normal_m0.sample(&mut rng);
-            k_old = orbit_param[4] + normal_k.sample(&mut rng);
-            v0_old = orbit_param[5] + normal_v0.sample(&mut rng);
+            p_old = round_f64(orbit_param[0] + normal_p.sample(&mut rng), decimals);
+            e_old = round_f64(orbit_param[1] + normal_e.sample(&mut rng), decimals);
+            w_old = round_f64(wrap_angle(orbit_param[2] + normal_w.sample(&mut rng)), decimals);
+            m0_old = round_f64(wrap_angle(orbit_param[3] + normal_m0.sample(&mut rng)), decimals);
+            k_old = round_f64(orbit_param[4] + normal_k.sample(&mut rng), decimals);
+            v0_old = round_f64(orbit_param[5] + normal_v0.sample(&mut rng), decimals);
 
             if (!bounds_check_bool([p_old, e_old, w_old, m0_old], bounds)) || (k_old < 0.0) {
                 p_old = orbit_param[0];
@@ -1538,8 +1558,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
             for _ in 0..burn_in {
                 p_new = round_f64(p_old + normal_p.sample(&mut rng), decimals);
                 e_new = round_f64(e_old + normal_e.sample(&mut rng), decimals);
-                w_new = round_f64(w_old + normal_w.sample(&mut rng), decimals);
-                m0_new = round_f64(m0_old + normal_m0.sample(&mut rng), decimals);
+                w_new = round_f64(wrap_angle(w_old + normal_w.sample(&mut rng)), decimals);
+                m0_new = round_f64(wrap_angle(m0_old + normal_m0.sample(&mut rng)), decimals);
                 k_new = round_f64(k_old + normal_k.sample(&mut rng), decimals);
 
                 if (bounds_check_bool([p_new, e_new, w_new, m0_new], bounds)) &&  (k_new > 0.0) {
@@ -1606,8 +1626,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
 
                 p_new = round_f64(p_old + normal_p.sample(&mut rng), decimals);
                 e_new = round_f64(e_old + normal_e.sample(&mut rng), decimals);
-                w_new = round_f64(w_old + normal_w.sample(&mut rng), decimals);
-                m0_new = round_f64(m0_old + normal_m0.sample(&mut rng), decimals);
+                w_new = round_f64(wrap_angle(w_old + normal_w.sample(&mut rng)), decimals);
+                m0_new = round_f64(wrap_angle(m0_old + normal_m0.sample(&mut rng)), decimals);
                 k_new = round_f64(k_old + normal_k.sample(&mut rng), decimals);
 
                 if (bounds_check_bool([p_new, e_new, w_new, m0_new], bounds)) &&  (k_new > 0.0) {
@@ -1669,12 +1689,12 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
 
     else {
         for _ in 0..chains {
-            p_old = orbit_param[0] + normal_p.sample(&mut rng);
-            e_old = orbit_param[1] + normal_e.sample(&mut rng);
-            w_old = orbit_param[2] + normal_w.sample(&mut rng);
-            m0_old = orbit_param[3] + normal_m0.sample(&mut rng);
-            k_old = orbit_param[4] + normal_k.sample(&mut rng);
-            v0_old = orbit_param[5] + normal_v0.sample(&mut rng);
+            p_old = round_f64(orbit_param[0] + normal_p.sample(&mut rng), decimals);
+            e_old = round_f64(orbit_param[1] + normal_e.sample(&mut rng), decimals);
+            w_old = round_f64(wrap_angle(orbit_param[2] + normal_w.sample(&mut rng)), decimals);
+            m0_old = round_f64(wrap_angle(orbit_param[3] + normal_m0.sample(&mut rng)), decimals);
+            k_old = round_f64(orbit_param[4] + normal_k.sample(&mut rng), decimals);
+            v0_old = round_f64(orbit_param[5] + normal_v0.sample(&mut rng), decimals);
 
             if (!bounds_check_bool([p_old, e_old, w_old, m0_old], bounds)) || (k_old < 0.0) {
                 p_old = orbit_param[0];
@@ -1704,8 +1724,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
             for _ in 0..burn_in {
                 p_new = round_f64(p_old + normal_p.sample(&mut rng), decimals);
                 e_new = round_f64(e_old + normal_e.sample(&mut rng), decimals);
-                w_new = round_f64(w_old + normal_w.sample(&mut rng), decimals);
-                m0_new = round_f64(m0_old + normal_m0.sample(&mut rng), decimals);
+                w_new = round_f64(wrap_angle(w_old + normal_w.sample(&mut rng)), decimals);
+                m0_new = round_f64(wrap_angle(m0_old + normal_m0.sample(&mut rng)), decimals);
                 k_new = round_f64(k_old + normal_k.sample(&mut rng), decimals);
 
                 if (bounds_check_bool([p_new, e_new, w_new, m0_new], bounds)) &&  (k_new > 0.0) {
@@ -1766,8 +1786,8 @@ fn metropolis_hastings(time: &Array1<f64>, rv: &Array1<f64>, weights: &Array1<f6
             for _ in 0..chain_samples {
                 p_new = round_f64(p_old + normal_p.sample(&mut rng), decimals);
                 e_new = round_f64(e_old + normal_e.sample(&mut rng), decimals);
-                w_new = round_f64(w_old + normal_w.sample(&mut rng), decimals);
-                m0_new = round_f64(m0_old + normal_m0.sample(&mut rng), decimals);
+                w_new = round_f64(wrap_angle(w_old + normal_w.sample(&mut rng)), decimals);
+                m0_new = round_f64(wrap_angle(m0_old + normal_m0.sample(&mut rng)), decimals);
                 k_new = round_f64(k_old + normal_k.sample(&mut rng), decimals);
 
                 if (bounds_check_bool([p_new, e_new, w_new, m0_new], bounds)) &&  (k_new > 0.0) {
@@ -2707,13 +2727,23 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     let mut rv_res_indices: Vec<_> = (0..rv.len()).collect();
     rv_res_indices.sort_by(|&i1, &i2| rv_res[i1].total_cmp(&rv_res[i2]));
 
-    let lf_result = lilliefors(rv_res.clone()).unwrap();
-    let lf_d = round_f64(lf_result.statistic, decimals);
-    let lf_logp = round_f64(lf_result.p_value.log10(), decimals);
+    let mut lf_d:f64 = f64::NAN;
+    let mut lf_logp:f64 = f64::NAN;
 
-    let ad_result = anderson_darling(rv_res.clone()).unwrap();
-    let ad_a2 = round_f64(ad_result.statistic, decimals);
-    let ad_logp = round_f64(ad_result.p_value.log10(), decimals);
+    if nobs >= 5 {
+        let lf_result = lilliefors(rv_res.clone()).unwrap();
+        lf_d = round_f64(lf_result.statistic, decimals);
+        lf_logp = round_f64(lf_result.p_value.log10(), decimals);
+    }
+
+    let mut ad_a2:f64 = f64::NAN;
+    let mut ad_logp:f64 = f64::NAN;
+
+    if nobs >= 8 {
+        let ad_result = anderson_darling(rv_res.clone()).unwrap();
+        ad_a2 = round_f64(ad_result.statistic, decimals);
+        ad_logp = round_f64(ad_result.p_value.log10(), decimals);
+    }
 
     let sw_result = shapiro_wilk(rv_res.clone()).unwrap();
     let sw_w = round_f64(sw_result.statistic, decimals);
