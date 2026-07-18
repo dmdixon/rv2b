@@ -59,10 +59,11 @@ Here is a short checklist one can go through on the RV2B outputs that may explai
 
 * No robust Generalized Lomb-Scargle period.
 * Low number of observations (nobs < 15).
+* Period smaller than pseudo-Nyquist period (P < ps_nyq_per).
 * Low number of orbital cycles (ncycles < 3).
 * Very large parameter uncertainties.
 * Very high eccentricity (e > 0.7).
-* Near circular orbit (e ~ 0).
+* Near-circular orbit (e ~ 0).
 * Sparse data sampling of orbital phase (max_phase_gap > 0.3).
 
 To fit simultaneous solutions with multiprocessing, you can use -l to run a file listing the file paths for each RV data file on separate lines. A simple example using the included Latham dataset is the following.
