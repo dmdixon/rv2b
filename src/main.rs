@@ -129,7 +129,7 @@ fn gls(time: &Array1<f64>,rv: &Array1<f64>, weights: &Array1<f64>, pmin: f64, pm
 }
 
 //Function for deriving search boundaries for nonlinear parameters.
-fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
+fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> ([(f64,f64);4],f64) {
     let tolerance = f64::EPSILON*cli.get_one::<f64>("tolerance").unwrap().to_owned();
     let decimals: f64 = cli.get_one::<usize>("decimals").unwrap().to_owned() as f64;
     let precision: f64 = 10.0_f64.powf(-decimals - 1.0);
@@ -141,6 +141,14 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
     let (mut wmin, mut wmax): (f64,f64) = (0.0, 2.0*PI);
     let (mut m0min, mut m0max): (f64,f64) = (0.0, 2.0*PI);
 
+    let mut min_tgap = f64::INFINITY;
+    for i in 0..(time.len()-1) {
+        if time[i+1] - time[i] < min_tgap && time[i+1] - time[i] > tolerance {
+            min_tgap = time[i+1] - time[i];
+        }
+    }
+    let ps_nyq_per: f64 = round_f64(2.0*min_tgap, decimals);
+
     if cli.contains_id("fix_P") {
         let pfix: f64 = cli.get_one::<f64>("fix_P").unwrap().to_owned();
         (pmin, pmax) = (pfix-precision,pfix+precision);
@@ -150,14 +158,8 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
         if cli.contains_id("min_P") {
             pmin=cli.get_one::<f64>("min_P").unwrap().to_owned();
             if nyquist_limit {
-                let mut min_tgap = f64::INFINITY;
-                for i in 0..(time.len()-1) {
-                    if time[i+1] - time[i] < min_tgap && time[i+1] - time[i] > tolerance {
-                        min_tgap = time[i+1] - time[i];
-                    }
-                }
-                if 2.0*min_tgap > pmin {
-                    pmin = 2.0*min_tgap;
+                if ps_nyq_per > pmin {
+                    pmin = ps_nyq_per;
                 }
             }
             else {
@@ -165,13 +167,7 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
             }
         }
         else {
-            let mut min_tgap = f64::INFINITY;
-            for i in 0..(time.len()-1) {
-                if time[i+1] - time[i] < min_tgap && time[i+1] - time[i] > tolerance {
-                    min_tgap = time[i+1] - time[i];
-                }
-            }
-            pmin = 2.0*min_tgap;
+            pmin = ps_nyq_per;
         }
 
         if cli.contains_id("max_P") {
@@ -256,7 +252,7 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> [(f64,f64);4] {
         m0max = 2.0*PI;
     }
 
-    [(pmin,pmax),(emin,emax),(wmin,wmax),(m0min,m0max)]
+    ([(pmin,pmax),(emin,emax),(wmin,wmax),(m0min,m0max)],ps_nyq_per)
 }
 
 //Function for wrapping angles to between 0.0 and 2.0*PI;
@@ -2642,7 +2638,7 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
         weights = Array1::<f64>::ones(rv.len());
     }
 
-    let bounds: [(f64,f64);4] = derive_bounds(&time,cli);
+    let (bounds,ps_nyq_per): ([(f64,f64);4],f64) = derive_bounds(&time,cli);
 
     let nobs: usize = rv.len();
 
@@ -2849,6 +2845,7 @@ fn exec(rv_filename: &str, cli: &ArgMatches) -> IndexMap<String, String> {
     result.insert(String::from("chns"), chains.to_string());
     result.insert(String::from("chn_smpls"), chain_samples.to_string());
     result.insert(String::from("conf_lvl"), confidence_level.to_string());
+    result.insert(String::from("ps_nyq_per"), ps_nyq_per.to_string());
     result.insert(String::from("ncycles"), ncycles.to_string());
     result.insert(String::from("max_phase_gap"), max_phase_gap.to_string());
     result.insert(String::from("neg_eig_vals"), nevs.to_string());
