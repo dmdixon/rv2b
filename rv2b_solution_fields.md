@@ -20,6 +20,7 @@
 | chns | Number of Metropolis-Hastings chains used to sample posterior. |
 | chn_smpls | Number of samples taken per Metropolis-Hastings chain. |
 | conf_lvl | Confidence level reported for Metropolis-Hastings posterior. |
+| ps_nyq_per | pseudo-Nyquist period assuming minimum time spacing between observations. |
 | ncycles | Number of solution orbital periods in observational baseline. |
 | max_phase_gap | Largest gap in phase given solution period. |
 | neg_eig_vals | Number of negative eigenvalues for orbit solution Hessian matrix. |
