@@ -3025,10 +3025,10 @@ fn main() {
         .help("Use radial velocity errors for score weighting.")
     )
     .arg(
-        Arg::new("nyquist_limit")
+        Arg::new("pseudo_nyquist_limit")
         .value_parser(value_parser!(bool))
-        .visible_alias("nyq_lim")
-        .long("nyquist_limit")
+        .visible_alias("ps_nyq_lim")
+        .long("pseudo_nyquist_limit")
         .default_value("true")
         .help("Limit minimum orbital period by pseudo-Nyquist limit.")
     )
