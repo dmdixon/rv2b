@@ -133,7 +133,7 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> ([(f64,f64);4],f64) {
     let tolerance = f64::EPSILON*cli.get_one::<f64>("tolerance").unwrap().to_owned();
     let decimals: f64 = cli.get_one::<usize>("decimals").unwrap().to_owned() as f64;
     let precision: f64 = 10.0_f64.powf(-decimals - 1.0);
-    let nyquist_limit = cli.get_one::<bool>("nyquist_limit").unwrap().to_owned();
+    let ps_nyq_lim = cli.get_one::<bool>("pseudo_nyquist_limit").unwrap().to_owned();
     let baseline_limit = cli.get_one::<bool>("baseline_limit").unwrap().to_owned();
 
     let (mut pmin, mut pmax): (f64,f64);
@@ -157,7 +157,7 @@ fn derive_bounds(time: &Array1<f64>, cli: &ArgMatches) -> ([(f64,f64);4],f64) {
     else {
         if cli.contains_id("min_P") {
             pmin=cli.get_one::<f64>("min_P").unwrap().to_owned();
-            if nyquist_limit {
+            if ps_nyq_lim {
                 if ps_nyq_per > pmin {
                     pmin = ps_nyq_per;
                 }
