@@ -17,7 +17,7 @@
 --named_columns | | -n | Presence of radial velocity data file(s) column names. | false | |
 | --comment | | -c | Start of line comment character in the radial velocity data file(s). | # | |
 | --radial_velocity_error_weights | | -w | Use radial velocity errors for score weighting. | true | Will run as false if RV data has no errors. |
-| --nyquist_limit | --nyq_lim | | Limit minimum orbital period by pseudo-Nyquist limit. | true | Minimum time spacing is used to define pseudo-Nyquist limit. |
+| --pseudo_nyquist_limit | --ps_nyq_lim | | Limit minimum orbital period by pseudo-Nyquist limit. | true | Minimum time spacing is used to define pseudo-Nyquist limit. |
 | --baseline_limit | --base_lim | | Limit maximum orbital period by observational baseline. | true | | 
 | --decimals | --dec | | Decimal places used for floating-point numbers. | 5 | |
 | --tolerance | --tol | | Convergence tolerance in units of f64 machine precision. | 100 | 
