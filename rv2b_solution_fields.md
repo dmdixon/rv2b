@@ -5,10 +5,10 @@
 | Field Name | Description |
 | :---: | :--- |
 | filename | Name of file containing radial velocity data. | 
-| filepath | Full filepath for file containing radial velocity data. |
+| filepath | Full filepath for the file containing radial velocity data. |
 | rundate | Calendar day on which the orbit solution was evaluated. |
-| runtime | Runtime in seconds for evaluating orbit solution. |
-| nobs | Number of radial velocity observations in radial velocity data file. | 
+| runtime | Runtime in seconds for evaluating the orbit solution. |
+| nobs | Number of radial velocity observations in the radial velocity data file. | 
 | dof | Degrees of freedom (N - P). |
 | gls_period | Generalized Lomb-Scargle period with highest normalized power. |
 | gls_power | Highest normalized power in Generalized Lomb-Scargle periodogram. |
@@ -17,10 +17,10 @@
 | niter_ga | Number of Genetic Algorithm generations processed before convergence. |
 | niter_lm | Number of Levenberg-Marquardt Jacobian steps processed before convergence. |
 | niter_hj | Number of Hooke-Jeeves moves processed before convergence. |
-| chns | Number of Metropolis-Hastings chains used to sample posterior. |
+| chns | Number of Metropolis-Hastings chains used to sample the posterior. |
 | chn_smpls | Number of samples taken per Metropolis-Hastings chain. |
 | conf_lvl | Confidence level reported for Metropolis-Hastings posterior. |
-| ps_nyq_per | pseudo-Nyquist period assuming minimum time spacing between observations. |
+| ps_nyq_per | pseudo-Nyquist period using Eyer & Bartholdi (1999) GCD approach. |
 | ncycles | Number of solution orbital periods in observational baseline. |
 | max_phase_gap | Largest gap in phase given solution period. |
 | neg_eig_vals | Number of negative eigenvalues for orbit solution Hessian matrix. |
@@ -45,7 +45,7 @@
 | M0 | Best-fit periastron phase. |
 | M0_err | Hessian uncertainty for periastron phase. |
 | M0_mean | Mean of periastron phase posterior. |
-| M0_std | Standard deviation of perastron phase posterior. |
+| M0_std | Standard deviation of periastron phase posterior. |
 | M0_l | Lower bound for periastron phase posterior confidence level. |
 | M0_u | Upper bound for periastron phase posterior confidence level. |
 | K | Best-fit semi-amplitude. |
@@ -82,14 +82,13 @@
 | rms_dof | Root mean square of radial velocity residuals adjusted for degrees of freedom. |
 | skew | Skew of radial velocity residuals. |
 | skew_dof | Skew of radial velocity residuals adjusted for degrees of freedom. |
-| log_KoS | Log of K divided by rms. |
-| log_KoS_dof | Log of K divided by rms adjusted for degrees of freedom. |
 | chi2_n | Reduced chi-squared of model fit. |
 | chi2_dof | Reduced chi-squared of model fit adjusted for degrees of freedom. |
 | lf_D | Lilliefors D statistic for testing normality of residual radial velocities. |
 | lf_logp | Log of p-value for Lilliefors test. |
 | ad_A2 | Anderson-Darling A-squared statistic for testing normality of residual radial velocities. |
 | ad_logp | Log of p-value for Anderson-Darling test. |
-| sw_W | Shapiro-Wilks W statistic for testing normality of residual radial velocities. |
-| sw_logp | Log of p-value for Shapiro-Wilks test. |
-
+| sw_W | Shapiro-Wilk W statistic for testing normality of residual radial velocities. |
+| sw_logp | Log of p-value for Shapiro-Wilk test. |
+| dw_C | Serial Correlation determined by Durbin-Watson statistic. |
+| accel_snr | Slope/rms of residual linear fit multiplied by time span. |
