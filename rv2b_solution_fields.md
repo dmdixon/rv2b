@@ -22,7 +22,8 @@
 | conf_lvl | Confidence level reported for Metropolis-Hastings posterior. |
 | ps_nyq_per | pseudo-Nyquist period using Eyer & Bartholdi (1999) GCD approach. |
 | ncycles | Number of solution orbital periods in observational baseline. |
-| max_phase_gap | Largest gap in phase given solution period. |
+| drvm | Largest difference in radial velocity measurements.
+| mpg | Largest gap in phase given solution period. |
 | neg_eig_vals | Number of negative eigenvalues for orbit solution Hessian matrix. |
 | P | Best-fit period. |
 | P_err | Hessian uncertainty for period. |
